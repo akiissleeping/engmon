@@ -1,0 +1,1764 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>EngMon 🐲</title>
+<style>
+:root{
+  --bg:#0d0d1f;--bg2:#13132a;--card:#1a1a35;--border:#2a2a50;
+  --accent:#7c6fff;--gold:#ffd700;--green:#00e676;--red:#ff4757;
+  --blue:#4facfe;--text:#e8e8f8;--muted:#7878a8;--r:16px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(--text);
+  max-width:480px;margin:0 auto;min-height:100vh;position:relative;overflow-x:hidden}
+
+/* ── SCREENS ─────────────────────────────────── */
+.screen{display:none;flex-direction:column;min-height:100vh;padding-bottom:72px}
+.screen.active{display:flex}
+
+/* ── TOP BAR ─────────────────────────────────── */
+.topbar{display:flex;justify-content:space-between;align-items:center;
+  padding:14px 18px;background:var(--bg2);border-bottom:1px solid var(--border)}
+.topbar-logo{font-size:1.1rem;font-weight:800;color:var(--gold)}
+.topbar-stats{display:flex;gap:14px;font-size:.8rem;font-weight:700}
+.streak{color:#ff8c00}.xp-stat{color:var(--gold)}
+
+/* ── CHARACTER AREA ───────────────────────────── */
+.char-area{text-align:center;padding:24px 16px 16px;position:relative}
+.char-level{position:absolute;top:18px;left:18px;
+  background:var(--gold);color:#000;font-weight:900;font-size:.75rem;
+  padding:3px 10px;border-radius:20px}
+.char-wrapper{position:relative;display:inline-block;margin:0 auto}
+.char-svg{width:140px;height:140px;filter:drop-shadow(0 0 20px rgba(124,111,255,.6))}
+.char-particles{position:absolute;inset:0;pointer-events:none}
+.particle{position:absolute;width:6px;height:6px;border-radius:50%;
+  background:var(--gold);animation:float-particle 3s infinite;opacity:0}
+.char-name{font-size:1.1rem;font-weight:800;color:var(--text);margin-top:8px}
+.char-title{font-size:.72rem;color:var(--muted);letter-spacing:.5px}
+.xp-section{margin:12px 18px}
+.xp-labels{display:flex;justify-content:space-between;font-size:.72rem;color:var(--muted);margin-bottom:4px}
+.xp-bar{height:10px;background:var(--border);border-radius:5px;overflow:hidden}
+.xp-fill{height:100%;background:linear-gradient(90deg,var(--accent),var(--gold));
+  border-radius:5px;transition:width .6s ease}
+
+/* ── CARDS ────────────────────────────────────── */
+.cards{padding:0 14px;display:flex;flex-direction:column;gap:10px}
+.game-card{background:var(--card);border:1px solid var(--border);border-radius:var(--r);
+  padding:16px;display:flex;align-items:center;gap:14px;cursor:pointer;
+  transition:all .2s;text-decoration:none;color:inherit}
+.game-card:hover{border-color:var(--accent);background:#1e1e40}
+.game-card:active{transform:scale(.98)}
+.card-icon{font-size:2rem;flex-shrink:0}
+.card-body{flex:1}
+.card-title{font-weight:800;font-size:.95rem}
+.card-sub{font-size:.75rem;color:var(--muted);margin-top:2px}
+.card-meta{font-size:.7rem;color:var(--accent);margin-top:4px;font-weight:700}
+.card-arrow{color:var(--muted);font-size:1.3rem}
+.boss-card{border-color:#ff4757;background:#1f1020}
+.boss-card .card-title{color:#ff4757}
+.boss-card .card-meta{color:#ff8c00}
+.done-card{opacity:.7}
+.done-badge{background:var(--green);color:#000;font-size:.6rem;font-weight:700;
+  padding:2px 8px;border-radius:20px}
+
+/* ── WEEKLY DOTS ──────────────────────────────── */
+.weekly-wrap{background:var(--card);border:1px solid var(--border);border-radius:var(--r);
+  padding:14px 18px;margin:0 14px}
+.weekly-title{font-size:.75rem;color:var(--muted);font-weight:700;margin-bottom:10px;
+  display:flex;justify-content:space-between}
+.day-dots{display:flex;gap:8px;justify-content:center}
+.day-dot{flex:1;aspect-ratio:1;border-radius:8px;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;background:var(--border);font-size:.55rem;
+  color:var(--muted);font-weight:700;transition:all .3s}
+.day-dot.done{background:var(--green);color:#000}
+.day-dot.today{border:2px solid var(--accent)}
+
+/* ── BOTTOM NAV ───────────────────────────────── */
+.bottom-nav{position:fixed;bottom:0;left:50%;transform:translateX(-50%);
+  width:100%;max-width:480px;background:var(--bg2);border-top:1px solid var(--border);
+  display:flex;z-index:100}
+.nav-btn{flex:1;border:none;background:none;color:var(--muted);
+  padding:10px 4px 8px;cursor:pointer;display:flex;flex-direction:column;
+  align-items:center;gap:2px;font-size:.58rem;font-weight:700;transition:color .2s}
+.nav-btn.active{color:var(--accent)}
+.nav-btn .icon{font-size:1.4rem}
+
+/* ── LESSON HEADER ────────────────────────────── */
+.lesson-header{background:var(--bg2);padding:12px 16px;display:flex;
+  align-items:center;gap:12px;border-bottom:1px solid var(--border);flex-shrink:0}
+.back-btn{background:none;border:1px solid var(--border);color:var(--text);
+  border-radius:8px;padding:6px 12px;cursor:pointer;font-size:.8rem}
+.timer-wrap{flex:1}
+.timer-bar-bg{height:8px;background:var(--border);border-radius:4px;overflow:hidden}
+.timer-bar-fill{height:100%;background:linear-gradient(90deg,var(--green),var(--accent));
+  border-radius:4px;transition:width 1s linear}
+.timer-text{font-size:.7rem;color:var(--muted);text-align:right;margin-top:2px;font-weight:700}
+
+/* ── LESSON CONTENT ───────────────────────────── */
+.lesson-content{flex:1;padding:16px;overflow-y:auto}
+.phase-badge{display:inline-block;background:var(--accent);color:#fff;
+  font-size:.65rem;padding:2px 10px;border-radius:20px;font-weight:700;
+  text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px}
+.situation-card{background:var(--card);border-radius:var(--r);padding:20px;
+  text-align:center;border:1px solid var(--border)}
+.situation-emoji{font-size:3.5rem;margin-bottom:12px}
+.situation-title{font-size:1.2rem;font-weight:800;margin-bottom:6px}
+.situation-desc{font-size:.82rem;color:var(--muted);line-height:1.6}
+.situation-desc-ja{font-size:.78rem;color:var(--accent);margin-top:6px}
+.start-lesson-btn{margin-top:20px;width:100%;padding:14px;background:var(--accent);
+  border:none;border-radius:10px;color:#fff;font-weight:800;font-size:1rem;cursor:pointer}
+
+/* ── DIALOGUE ─────────────────────────────────── */
+.dialogue-list{display:flex;flex-direction:column;gap:12px}
+.d-bubble-row{display:flex;gap:10px;align-items:flex-start}
+.d-bubble-row.right{flex-direction:row-reverse}
+.d-avatar{width:38px;height:38px;border-radius:50%;display:flex;align-items:center;
+  justify-content:center;font-size:1.2rem;flex-shrink:0;border:2px solid var(--border)}
+.d-bubble{max-width:75%;cursor:pointer}
+.d-speaker{font-size:.62rem;color:var(--muted);font-weight:700;text-transform:uppercase;
+  letter-spacing:.5px;margin-bottom:3px}
+.d-bubble-row.right .d-speaker{text-align:right}
+.d-text{background:var(--card);border-radius:12px 12px 12px 2px;padding:10px 14px;
+  border:1px solid var(--border)}
+.d-bubble-row.right .d-text{border-radius:12px 12px 2px 12px}
+.d-en{font-weight:700;font-size:.88rem;line-height:1.5}
+.d-ja{font-size:.72rem;color:var(--muted);margin-top:4px}
+.d-bubble.speaking .d-text{border-color:var(--accent);box-shadow:0 0 12px rgba(124,111,255,.4)}
+.d-bubble.speaking .d-en{color:var(--gold)}
+.play-all-btn{width:100%;margin-top:14px;padding:12px;background:var(--bg2);
+  border:1px solid var(--accent);border-radius:10px;color:var(--accent);
+  font-weight:700;cursor:pointer;font-size:.88rem}
+.play-all-btn.playing{background:var(--accent);color:#fff}
+.next-phase-btn{width:100%;margin-top:16px;padding:14px;background:var(--green);
+  border:none;border-radius:10px;color:#000;font-weight:800;font-size:.95rem;cursor:pointer}
+
+/* ── VOCAB CARDS ──────────────────────────────── */
+.vocab-flip-card{perspective:600px;height:200px;cursor:pointer;margin-bottom:12px}
+.vocab-flip-inner{width:100%;height:100%;position:relative;
+  transform-style:preserve-3d;transition:transform .5s}
+.vocab-flip-card.flipped .vocab-flip-inner{transform:rotateY(180deg)}
+.vocab-face{position:absolute;inset:0;border-radius:var(--r);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  padding:20px;backface-visibility:hidden;text-align:center}
+.vocab-front{background:linear-gradient(135deg,var(--accent),#4facfe)}
+.vocab-back{background:linear-gradient(135deg,#f093fb,#f5576c);transform:rotateY(180deg)}
+.vocab-face .vlabel{font-size:.65rem;text-transform:uppercase;letter-spacing:1px;opacity:.7;margin-bottom:8px}
+.vocab-face .vterm{font-size:1.6rem;font-weight:900}
+.vocab-face .vex{font-size:.78rem;opacity:.85;margin-top:10px;font-style:italic;line-height:1.5}
+.vocab-origin{width:100%;margin-top:10px;background:rgba(0,0,0,.3);border-radius:8px;padding:8px 10px;text-align:left}
+.origin-tag{font-size:.58rem;color:var(--gold);font-weight:700;letter-spacing:.5px;display:block;margin-bottom:3px}
+.origin-orig{font-size:.67rem;color:rgba(255,255,255,.55);margin-bottom:5px;display:block;font-style:italic}
+.origin-why{font-size:.72rem;color:rgba(255,255,255,.9);line-height:1.55;display:block}
+.vocab-progress{display:flex;gap:6px;justify-content:center;margin-bottom:8px}
+.vocab-dot{width:8px;height:8px;border-radius:50%;background:var(--border)}
+.vocab-dot.active{background:var(--gold)}
+
+/* ── QUIZ ─────────────────────────────────────── */
+.quiz-q{background:var(--card);border-radius:var(--r);padding:18px;
+  border:1px solid var(--border);margin-bottom:14px}
+.quiz-qnum{font-size:.7rem;color:var(--accent);font-weight:700;margin-bottom:6px}
+.quiz-qtext{font-size:.95rem;font-weight:700;line-height:1.5}
+.quiz-qsub{font-size:.75rem;color:var(--muted);font-style:italic;margin-top:4px}
+.quiz-opts{display:flex;flex-direction:column;gap:8px}
+.quiz-opt{background:var(--card);border:2px solid var(--border);border-radius:10px;
+  padding:12px 16px;cursor:pointer;font-size:.85rem;font-weight:600;
+  text-align:left;color:var(--text);transition:all .2s}
+.quiz-opt:hover:not(:disabled){border-color:var(--accent)}
+.quiz-opt.correct{border-color:var(--green);background:#0d2e1a;color:var(--green)}
+.quiz-opt.wrong{border-color:var(--red);background:#2e0d0d;color:var(--red)}
+.quiz-opt:disabled{cursor:default;opacity:.8}
+.quiz-fb{background:var(--bg2);border-radius:10px;padding:12px;font-size:.8rem;
+  line-height:1.6;margin-top:10px;border-left:3px solid var(--green)}
+.quiz-fb.wrong-fb{border-left-color:var(--red)}
+
+/* ── RESULT SCREEN ────────────────────────────── */
+.result-wrap{text-align:center;padding:30px 20px}
+.result-emoji{font-size:5rem;margin-bottom:16px;animation:bounce 1s infinite}
+.result-title{font-size:1.4rem;font-weight:900;margin-bottom:8px}
+.result-xp{font-size:1rem;color:var(--gold);font-weight:700;margin-bottom:16px}
+.xp-items{display:flex;flex-direction:column;gap:6px;margin-bottom:20px;text-align:left;
+  background:var(--card);border-radius:10px;padding:14px}
+.xp-item{display:flex;justify-content:space-between;font-size:.8rem}
+.xp-item .plus{color:var(--gold);font-weight:700}
+.level-up-banner{background:linear-gradient(135deg,var(--gold),#ff8c00);
+  border-radius:10px;padding:14px;margin-bottom:16px;display:none}
+.level-up-banner.show{display:block}
+.level-up-banner h3{font-size:1.1rem;font-weight:900;color:#000}
+.back-home-btn{width:100%;padding:14px;background:var(--accent);border:none;
+  border-radius:10px;color:#fff;font-weight:800;font-size:1rem;cursor:pointer}
+
+/* ── BOSS BATTLE ──────────────────────────────── */
+.battle-area{padding:16px;display:flex;flex-direction:column;gap:14px}
+.battle-top{display:flex;justify-content:space-between;align-items:flex-start;gap:10px}
+.fighter{flex:1;text-align:center}
+.fighter-name{font-size:.72rem;color:var(--muted);font-weight:700;text-transform:uppercase;margin-bottom:6px}
+.hp-bar-wrap{background:var(--border);border-radius:4px;height:10px;overflow:hidden;margin-top:4px}
+.hp-fill{height:100%;border-radius:4px;transition:width .5s}
+.boss-hp{background:linear-gradient(90deg,var(--red),#ff8c00)}
+.player-hp{background:linear-gradient(90deg,var(--green),var(--blue))}
+.hp-text{font-size:.68rem;color:var(--muted);margin-top:2px;font-weight:700}
+.battle-vs{font-size:1.2rem;font-weight:900;color:var(--gold);align-self:center}
+.boss-display{font-size:7rem;text-align:center;animation:boss-float 3s ease-in-out infinite}
+.player-display{font-size:5rem;animation:char-bounce .8s ease-in-out infinite alternate}
+.battle-log{background:var(--card);border-radius:10px;padding:12px;font-size:.8rem;
+  color:var(--muted);text-align:center;min-height:48px;border:1px solid var(--border)}
+.battle-log .hit{color:var(--gold);font-weight:700}
+.battle-log .miss{color:var(--red)}
+.battle-log .win{color:var(--green);font-weight:900}
+.battle-q{background:var(--card);border:1px solid var(--border);border-radius:var(--r);padding:16px}
+.battle-qtext{font-weight:700;font-size:.9rem;margin-bottom:12px}
+.battle-opts{display:flex;flex-direction:column;gap:8px}
+.battle-opt{background:var(--bg2);border:2px solid var(--border);border-radius:8px;
+  padding:10px 14px;cursor:pointer;font-size:.82rem;font-weight:600;color:var(--text);
+  text-align:left;transition:all .2s}
+.battle-opt:hover:not(:disabled){border-color:var(--red)}
+.battle-opt.hit{border-color:var(--green);background:#0d2e1a;color:var(--green)}
+.battle-opt.hurt{border-color:var(--red);background:#2e0d0d;color:var(--red)}
+.battle-opt:disabled{cursor:default}
+.battle-result{text-align:center;padding:20px}
+.battle-result h2{font-size:1.5rem;font-weight:900;margin-bottom:12px}
+.battle-result .reward{color:var(--gold);font-size:1rem;font-weight:700}
+
+/* ── PROGRESS SCREEN ──────────────────────────── */
+.progress-content{padding:16px;display:flex;flex-direction:column;gap:16px}
+.progress-section{background:var(--card);border-radius:var(--r);padding:16px;border:1px solid var(--border)}
+.progress-section h3{font-size:.8rem;color:var(--muted);text-transform:uppercase;
+  letter-spacing:.5px;font-weight:700;margin-bottom:12px}
+.stat-row{display:flex;justify-content:space-between;padding:8px 0;
+  border-bottom:1px solid var(--border);font-size:.85rem}
+.stat-row:last-child{border-bottom:none}
+.stat-val{font-weight:800;color:var(--gold)}
+.evo-tree{display:flex;gap:8px;overflow-x:auto;padding-bottom:8px}
+.evo-stage{text-align:center;flex-shrink:0;width:75px}
+.evo-emoji{font-size:2.5rem;padding:8px;border-radius:12px;background:var(--bg);
+  border:2px solid var(--border);display:block;transition:all .3s}
+.evo-stage.unlocked .evo-emoji{border-color:var(--gold);background:#1a1500}
+.evo-stage.current .evo-emoji{border-color:var(--accent);animation:glow-pulse 1.5s infinite}
+.evo-label{font-size:.6rem;color:var(--muted);margin-top:4px;font-weight:700}
+.evo-stage.unlocked .evo-label{color:var(--gold)}
+.evo-stage.current .evo-label{color:var(--accent)}
+
+/* ── ANIMATIONS ───────────────────────────────── */
+@keyframes bounce{0%,100%{transform:translateY(0)}50%{transform:translateY(-12px)}}
+@keyframes char-bounce{from{transform:translateY(0)}to{transform:translateY(-8px)}}
+@keyframes boss-float{0%,100%{transform:translateY(0) scale(1)}50%{transform:translateY(-15px) scale(1.05)}}
+@keyframes float-particle{0%{opacity:0;transform:translateY(0) scale(1)}50%{opacity:1}100%{opacity:0;transform:translateY(-60px) scale(0)}}
+@keyframes glow-pulse{0%,100%{box-shadow:0 0 8px var(--accent)}50%{box-shadow:0 0 20px var(--accent),0 0 40px rgba(124,111,255,.4)}}
+@keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-8px)}75%{transform:translateX(8px)}}
+@keyframes sparkle{0%{opacity:1;transform:scale(1)}100%{opacity:0;transform:scale(2) rotate(45deg)}}
+@keyframes slide-up{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
+.slide-up{animation:slide-up .3s ease}
+
+/* ── MISC ─────────────────────────────────────── */
+.section-header{padding:14px 16px 4px;font-size:.7rem;color:var(--muted);
+  text-transform:uppercase;letter-spacing:.5px;font-weight:700}
+.no-boss-msg{text-align:center;padding:20px;color:var(--muted);font-size:.85rem}
+
+/* ── VOCAB BOOK ───────────────────────────────── */
+.vb-search{width:100%;padding:10px 14px;background:var(--card);border:1px solid var(--border);
+  border-radius:10px;color:var(--text);font-size:.88rem;margin-bottom:12px}
+.vb-search:focus{outline:none;border-color:var(--accent)}
+.vb-search::placeholder{color:var(--muted)}
+.vb-empty{text-align:center;padding:50px 20px;color:var(--muted)}
+.vb-empty .vb-ei{font-size:3.5rem;margin-bottom:12px}
+.vb-tag{display:inline-block;font-size:.58rem;background:var(--accent);color:#fff;
+  border-radius:10px;padding:2px 8px;margin-bottom:6px;font-weight:700;letter-spacing:.3px}
+.vb-tag.biz{background:#e74c3c}
+.vb-date{font-size:.6rem;color:var(--muted);float:right;margin-top:2px}
+
+/* ── CATEGORY SELECTOR ───────────────────────── */
+.cat-wrap{display:flex;gap:10px;padding:0 14px;margin-bottom:4px}
+.cat-btn{flex:1;background:var(--card);border:2px solid var(--border);border-radius:12px;
+  padding:12px;text-align:center;cursor:pointer;transition:all .2s;color:var(--text)}
+.cat-btn.active{border-color:var(--accent);background:#1e1e40}
+.cat-btn .cat-icon{font-size:1.6rem;display:block;margin-bottom:4px}
+.cat-btn .cat-label{font-size:.8rem;font-weight:700;display:block}
+.cat-btn .cat-sub{font-size:.62rem;color:var(--muted);display:block}
+.cat-btn.active .cat-label{color:var(--accent)}
+
+/* ── LESSON HEADER (TIMER → EXIT BUTTON) ─────── */
+.lesson-topbar{padding:6px 16px 8px;background:var(--bg2)}
+.exit-btn{background:var(--card);border:2px solid var(--border);color:var(--text);
+  border-radius:20px;padding:8px 32px;font-weight:700;font-size:.88rem;cursor:pointer}
+.lesson-timer{padding:8px 16px 10px;background:var(--bg2);display:flex;justify-content:center;border-bottom:1px solid var(--border)}
+</style>
+</head>
+<body>
+
+<!-- ════════════════════════════════════════════
+     HOME SCREEN
+════════════════════════════════════════════ -->
+<div id="screen-home" class="screen active">
+  <div class="topbar">
+    <div class="topbar-logo">EngMon 🐲</div>
+    <div class="topbar-stats">
+      <div class="streak">🔥 <span id="h-streak">0</span>日</div>
+      <div class="xp-stat">⭐ <span id="h-xp">0</span> XP</div>
+    </div>
+  </div>
+
+  <div class="char-area">
+    <div class="char-level">Lv.<span id="h-level">1</span></div>
+    <div class="char-wrapper">
+      <div id="h-char"><!-- SVG injected --></div>
+      <div class="char-particles" id="h-particles"></div>
+    </div>
+    <div class="char-name" id="h-charname">Wordoru</div>
+    <div class="char-title" id="h-chartitle">見習い英語使い</div>
+  </div>
+
+  <div class="xp-section">
+    <div class="xp-labels">
+      <span id="h-xp-cur">0 XP</span>
+      <span id="h-xp-next">次のレベルまで 200 XP</span>
+    </div>
+    <div class="xp-bar"><div class="xp-fill" id="h-xp-fill" style="width:0%"></div></div>
+  </div>
+
+  <div class="section-header">今日のカテゴリー</div>
+  <div class="cat-wrap">
+    <button class="cat-btn active" id="cat-daily" onclick="setCategory('daily')">
+      <span class="cat-icon">🏡</span>
+      <span class="cat-label">日常会話</span>
+      <span class="cat-sub">Daily Life</span>
+    </button>
+    <button class="cat-btn" id="cat-business" onclick="setCategory('business')">
+      <span class="cat-icon">💼</span>
+      <span class="cat-label">ビジネス</span>
+      <span class="cat-sub">Business English</span>
+    </button>
+  </div>
+
+  <div class="section-header">今日のレッスン</div>
+  <div class="cards">
+    <div class="game-card" id="lesson-card" onclick="goLesson()">
+      <div class="card-icon">📚</div>
+      <div class="card-body">
+        <div class="card-title" id="lesson-title">Loading...</div>
+        <div class="card-sub" id="lesson-sub">今日のシナリオ</div>
+        <div class="card-meta" id="lesson-meta">⏱ 5分 • 未学習</div>
+      </div>
+      <div class="card-arrow" id="lesson-arrow">›</div>
+    </div>
+  </div>
+
+  <div class="section-header" id="boss-section-header" style="display:none">週間ボスバトル</div>
+  <div class="cards" id="boss-card-wrap" style="display:none">
+    <div class="game-card boss-card" onclick="navigate('boss')">
+      <div class="card-icon">⚔️</div>
+      <div class="card-body">
+        <div class="card-title" id="boss-card-name">???</div>
+        <div class="card-sub" id="boss-card-sub">週間ボスに挑戦！</div>
+        <div class="card-meta" id="boss-card-meta">今週の学習でパワーをためて倒せ！</div>
+      </div>
+      <div class="card-arrow">›</div>
+    </div>
+  </div>
+
+  <div class="section-header">今週の記録</div>
+  <div class="weekly-wrap">
+    <div class="weekly-title">
+      <span>学習日</span>
+      <span id="week-count-label">0/7日</span>
+    </div>
+    <div class="day-dots" id="day-dots"></div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════
+     LESSON SCREEN
+════════════════════════════════════════════ -->
+<div id="screen-lesson" class="screen">
+  <div class="lesson-topbar">
+    <div class="timer-bar-bg"><div class="timer-bar-fill" id="timer-fill" style="width:100%"></div></div>
+    <div class="timer-text" id="timer-text">5:00</div>
+  </div>
+  <div class="lesson-timer">
+    <button class="exit-btn" onclick="exitLesson()">⏹ レッスン終了</button>
+  </div>
+  <div class="lesson-content" id="lesson-content"></div>
+</div>
+
+<!-- ════════════════════════════════════════════
+     BOSS BATTLE SCREEN
+════════════════════════════════════════════ -->
+<div id="screen-boss" class="screen">
+  <div class="topbar">
+    <div class="topbar-logo">⚔️ ボスバトル</div>
+    <button class="back-btn" onclick="navigate('home')" style="font-size:.75rem">← 戻る</button>
+  </div>
+  <div class="battle-area" id="battle-area"></div>
+</div>
+
+<!-- ════════════════════════════════════════════
+     PROGRESS SCREEN
+════════════════════════════════════════════ -->
+<div id="screen-progress" class="screen">
+  <div class="topbar"><div class="topbar-logo">📊 進捗</div></div>
+  <div class="progress-content">
+
+    <div class="progress-section">
+      <h3>🎮 ステータス</h3>
+      <div class="stat-row"><span>総学習日数</span><span class="stat-val" id="p-totaldays">0日</span></div>
+      <div class="stat-row"><span>最長ストリーク</span><span class="stat-val" id="p-maxstreak">0日</span></div>
+      <div class="stat-row"><span>現在のストリーク</span><span class="stat-val" id="p-streak">0日</span></div>
+      <div class="stat-row"><span>合計XP</span><span class="stat-val" id="p-xp">0 XP</span></div>
+      <div class="stat-row"><span>ボス撃破数</span><span class="stat-val" id="p-bosswins">0体</span></div>
+    </div>
+
+    <div class="progress-section">
+      <h3>🐲 進化ツリー</h3>
+      <div class="evo-tree" id="evo-tree"></div>
+    </div>
+
+    <div class="progress-section">
+      <h3>📅 今週の記録</h3>
+      <div class="day-dots" id="p-day-dots" style="justify-content:flex-start;gap:10px"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════
+     VOCAB BOOK SCREEN
+════════════════════════════════════════════ -->
+<div id="screen-vocab" class="screen">
+  <div class="topbar">
+    <div class="topbar-logo">📖 単語帳</div>
+    <div class="topbar-stats"><span id="vb-total">0</span>語 学習済み</div>
+  </div>
+  <div style="padding:14px;flex:1;overflow-y:auto">
+    <input class="vb-search" id="vb-search" type="text"
+      placeholder="🔍 英語・日本語で検索..." oninput="filterVocab(this.value)">
+    <div id="vocab-book-content"></div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════
+     BOTTOM NAV
+════════════════════════════════════════════ -->
+<nav class="bottom-nav">
+  <button class="nav-btn active" onclick="navigate('home')" data-screen="home">
+    <span class="icon">🏠</span>ホーム
+  </button>
+  <button class="nav-btn" onclick="navigate('vocab')" data-screen="vocab">
+    <span class="icon">📖</span>単語帳
+  </button>
+  <button class="nav-btn" onclick="navigate('progress')" data-screen="progress">
+    <span class="icon">📊</span>進捗
+  </button>
+  <button class="nav-btn" onclick="navigate('boss')" data-screen="boss">
+    <span class="icon">⚔️</span>バトル
+  </button>
+</nav>
+
+<script>
+// ═══════════════════════════════════════════════════
+//  CHARACTER DATA
+// ═══════════════════════════════════════════════════
+const CHARS = [
+  { name:'Wordoru', title:'見習い英語使い', emoji:'🥚', minXP:0,
+    svg:`<svg viewBox="0 0 120 120" class="char-svg" style="animation:char-bounce .9s ease-in-out infinite alternate">
+      <ellipse cx="60" cy="72" rx="42" ry="46" fill="#a8e6cf" stroke="#7ecba1" stroke-width="2"/>
+      <circle cx="45" cy="62" r="9" fill="white"/><circle cx="75" cy="62" r="9" fill="white"/>
+      <circle cx="47" cy="64" r="5" fill="#222"/><circle cx="77" cy="64" r="5" fill="#222"/>
+      <circle cx="49" cy="61" r="2" fill="white"/><circle cx="79" cy="61" r="2" fill="white"/>
+      <path d="M 48 78 Q 60 88 72 78" stroke="#555" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+      <ellipse cx="20" cy="82" rx="10" ry="6" fill="#8ccfab" transform="rotate(-25,20,82)"/>
+      <ellipse cx="100" cy="82" rx="10" ry="6" fill="#8ccfab" transform="rotate(25,100,82)"/>
+    </svg>` },
+  { name:'Lexapup', title:'英語の芽生え', emoji:'🐣', minXP:200,
+    svg:`<svg viewBox="0 0 120 130" class="char-svg" style="animation:char-bounce .8s ease-in-out infinite alternate">
+      <ellipse cx="60" cy="80" rx="44" ry="44" fill="#88d8b0" stroke="#5cb88a" stroke-width="2"/>
+      <path d="M 38 38 Q 30 10 46 28" stroke="#5cb88a" stroke-width="3" fill="#88d8b0"/>
+      <path d="M 82 38 Q 90 10 74 28" stroke="#5cb88a" stroke-width="3" fill="#88d8b0"/>
+      <circle cx="45" cy="72" r="10" fill="white"/><circle cx="75" cy="72" r="10" fill="white"/>
+      <circle cx="47" cy="74" r="6" fill="#222"/><circle cx="77" cy="74" r="6" fill="#222"/>
+      <circle cx="49" cy="71" r="2" fill="white"/><circle cx="79" cy="71" r="2" fill="white"/>
+      <path d="M 47 87 Q 60 96 73 87" stroke="#444" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+      <path d="M 55 100 Q 60 108 65 100" stroke="#5cb88a" stroke-width="3" fill="none"/>
+      <ellipse cx="18" cy="88" rx="11" ry="7" fill="#6cc292" transform="rotate(-20,18,88)"/>
+      <ellipse cx="102" cy="88" rx="11" ry="7" fill="#6cc292" transform="rotate(20,102,88)"/>
+    </svg>` },
+  { name:'Phrasaur', title:'フレーズの守護者', emoji:'🦕', minXP:500,
+    svg:`<svg viewBox="0 0 130 140" class="char-svg" style="animation:char-bounce .7s ease-in-out infinite alternate">
+      <ellipse cx="65" cy="90" rx="46" ry="44" fill="#4ecdc4" stroke="#36b5ac" stroke-width="2"/>
+      <path d="M 50 46 L 45 20 L 55 38" fill="#4ecdc4" stroke="#36b5ac" stroke-width="2"/>
+      <path d="M 65 42 L 60 14 L 72 36" fill="#4ecdc4" stroke="#36b5ac" stroke-width="2"/>
+      <path d="M 80 46 L 82 18 L 88 40" fill="#4ecdc4" stroke="#36b5ac" stroke-width="2"/>
+      <circle cx="50" cy="78" r="11" fill="white"/><circle cx="80" cy="78" r="11" fill="white"/>
+      <circle cx="52" cy="80" r="7" fill="#1a5276"/><circle cx="82" cy="80" r="7" fill="#1a5276"/>
+      <circle cx="54" cy="77" r="2.5" fill="white"/><circle cx="84" cy="77" r="2.5" fill="white"/>
+      <path d="M 50 94 Q 65 104 80 94" stroke="#333" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+      <ellipse cx="15" cy="96" rx="14" ry="9" fill="#3ab8af" transform="rotate(-18,15,96)"/>
+      <ellipse cx="115" cy="96" rx="14" ry="9" fill="#3ab8af" transform="rotate(18,115,96)"/>
+      <path d="M 105 118 Q 115 108 118 128" stroke="#36b5ac" stroke-width="4" fill="none" stroke-linecap="round"/>
+    </svg>` },
+  { name:'Gramdrake', title:'文法の竜騎士', emoji:'🐲', minXP:1000,
+    svg:`<svg viewBox="0 0 140 150" class="char-svg" style="animation:char-bounce .6s ease-in-out infinite alternate">
+      <path d="M 20 90 Q 5 70 15 55 Q 10 40 28 50 Q 40 35 55 55 L 85 55 Q 100 35 112 50 Q 130 40 125 55 Q 135 70 120 90 Q 120 115 70 130 Q 20 115 20 90 Z" fill="#9b59b6" stroke="#7d3c98" stroke-width="2"/>
+      <path d="M 15 55 Q 0 30 10 10 Q 20 28 28 50" fill="#8e44ad" stroke="#7d3c98" stroke-width="1.5"/>
+      <path d="M 125 55 Q 140 30 130 10 Q 120 28 112 50" fill="#8e44ad" stroke="#7d3c98" stroke-width="1.5"/>
+      <circle cx="52" cy="78" r="13" fill="white"/><circle cx="88" cy="78" r="13" fill="white"/>
+      <circle cx="54" cy="80" r="8" fill="#8b0000"/><circle cx="90" cy="80" r="8" fill="#8b0000"/>
+      <circle cx="57" cy="77" r="3" fill="white"/><circle cx="93" cy="77" r="3" fill="white"/>
+      <path d="M 52 96 Q 70 106 88 96" stroke="#444" stroke-width="3" fill="none" stroke-linecap="round"/>
+      <path d="M 62 60 L 58 46 L 70 56" fill="#9b59b6" stroke="#7d3c98" stroke-width="1.5"/>
+      <path d="M 78 60 L 82 46 L 70 56" fill="#9b59b6" stroke="#7d3c98" stroke-width="1.5"/>
+      <path d="M 100 122 Q 120 110 125 130" stroke="#7d3c98" stroke-width="5" fill="none" stroke-linecap="round"/>
+      <ellipse cx="70" cy="78" rx="5" ry="4" fill="none" stroke="#c39bd3" stroke-width="1" opacity=".5"/>
+    </svg>` },
+  { name:'Fluenton', title:'英語の覇王竜', emoji:'🐉', minXP:2000,
+    svg:`<svg viewBox="0 0 160 170" class="char-svg" style="animation:boss-float 2.5s ease-in-out infinite">
+      <path d="M 10 100 Q 0 60 20 40 Q 10 15 30 30 Q 45 10 60 40 L 100 40 Q 115 10 130 30 Q 150 15 140 40 Q 160 60 150 100 Q 145 135 80 155 Q 15 135 10 100 Z" fill="#e74c3c" stroke="#c0392b" stroke-width="2"/>
+      <path d="M 20 40 Q 2 12 15 0 Q 28 15 30 30" fill="#c0392b"/>
+      <path d="M 140 40 Q 158 12 145 0 Q 132 15 130 30" fill="#c0392b"/>
+      <path d="M 30 60 Q 15 40 5 20 Q 20 35 35 55" fill="#e74c3c" opacity=".7"/>
+      <path d="M 130 60 Q 145 40 155 20 Q 140 35 125 55" fill="#e74c3c" opacity=".7"/>
+      <circle cx="58" cy="85" r="15" fill="white"/><circle cx="102" cy="85" r="15" fill="white"/>
+      <circle cx="60" cy="87" r="10" fill="#ffd700"/><circle cx="104" cy="87" r="10" fill="#ffd700"/>
+      <circle cx="58" cy="85" r="6" fill="#8b0000"/><circle cx="102" cy="85" r="6" fill="#8b0000"/>
+      <circle cx="60" cy="82" r="3" fill="white"/><circle cx="104" cy="82" r="3" fill="white"/>
+      <path d="M 58 105 Q 80 118 102 105" stroke="#333" stroke-width="3.5" fill="none" stroke-linecap="round"/>
+      <path d="M 66 68 L 60 48 L 75 62" fill="#e74c3c" stroke="#c0392b" stroke-width="2"/>
+      <path d="M 94 68 L 100 48 L 85 62" fill="#e74c3c" stroke="#c0392b" stroke-width="2"/>
+      <path d="M 80 48 L 74 26 L 86 44" fill="#ffd700" stroke="#e6ac00" stroke-width="2"/>
+      <circle cx="80" cy="22" r="8" fill="#ffd700" stroke="#e6ac00" stroke-width="2"/>
+      <path d="M 120 140 Q 145 125 150 150" stroke="#c0392b" stroke-width="7" fill="none" stroke-linecap="round"/>
+      <circle cx="80" cy="80" r="35" fill="none" stroke="#ffd700" stroke-width="1" opacity=".3"/>
+      <circle cx="80" cy="80" r="45" fill="none" stroke="#ffd700" stroke-width="0.5" opacity=".2"/>
+    </svg>` }
+];
+
+const CHAR_LEVELS = [0,200,500,1000,2000];
+
+// ═══════════════════════════════════════════════════
+//  SCENARIO DATA  — DAILY (7 situations)
+// ═══════════════════════════════════════════════════
+const SCENARIOS_DAILY = [
+  {
+    id:0, emoji:'☕', title:'Morning Coffee Run',
+    titleJa:'コーヒーショップの朝', situationJa:'近所のカフェ。顔なじみのバリスタと朝の会話。',
+    chars:[{name:'Sam (Barista)',avatar:'☕'},{name:'You',avatar:'😊',right:true}],
+    dialogue:[
+      {c:0,en:"Hey! The usual? You look like you need it today.",ja:"よっ！いつもの？今日は特に必要そうだね。"},
+      {c:1,en:"Please. I barely slept. Can you throw in an extra shot?",ja:"お願い。ほとんど眠れなかった。エクストラショット追加できる？",r:true},
+      {c:0,en:"For sure. Rough night? The extra one's on the house.",ja:"もちろん。きつい夜だった？エクストラはサービスしとくよ。"},
+      {c:1,en:"You're a lifesaver. I owe you one.",ja:"マジで命の恩人だよ。貸し一つな。",r:true},
+      {c:0,en:"Don't worry about it. Grab a seat — I'll bring it right over.",ja:"気にすんな。座って。すぐ持ってくよ。"},
+    ],
+    vocab:[
+      {term:'On the house',ja:'お店のサービス・無料',ex:"The extra shot is on the house.",
+        origin:{original:'家（house）= 店・経営者の費用で',why:'酒場では house = その店・オーナーを指した。「ハウスが支払う」= 店側が自腹でサービスする意味。今でもレストランやバーで使われる定番フレーズ。'}},
+      {term:'Lifesaver',ja:'助かる！命の恩人',ex:"You're a lifesaver!",
+        origin:{original:'命（life）を救う人・もの（saver）の直訳',why:'溺れる人を救う人が literal な lifesaver。それほど助かった！という誇張で「大いに助かった」を表す。缶入り飴「Life Savers」も浮き輪の形から同名。'}},
+      {term:'Owe you one',ja:'貸し一つ・お世話になった',ex:"I owe you one.",
+        origin:{original:'あなたに1つの借り（debt）がある',why:'owe = 金銭の借りを表す動詞。その借りを人間関係の恩義に転用し「1つ（one）」と数える感覚。次にお返しする約束を含む。'}},
+      {term:'Throw in',ja:'おまけで加える・サービスで入れる',ex:"Can you throw in an extra shot?",
+        origin:{original:'物を（中に）投げ込む（throw in）',why:'商売での「おまけ」慣習から。買い物の際に売り手が追加の品を袋に「投げ込む」ように加えるイメージ。交渉や会話でも「おまけとして追加する」意味で広く使われる。'}},
+    ],
+    quiz:[
+      {q:'"On the house" は何を意味する？',opts:['屋根の上に','お店サービス（無料）','家で飲む','会計は後で'],ans:1,fb:'"On the house" = the restaurant or bar pays. お店が自腹でサービスすること。'},
+      {q:'"You\'re a lifesaver" はどういう意味？',opts:['危険な人だ','命の恩人・大いに助かった','ゆっくり生きよう','プールで泳ぐ'],ans:1,fb:'"Lifesaver" = 大いに助けてくれた人・もの。誇張表現として感謝を伝える定番フレーズ。'},
+      {q:'"Throw in" の意味は？',opts:['投げ捨てる','諦める','おまけで加える・サービスする','注文を取り消す'],ans:2,fb:'"Throw in" = 追加でサービスする・おまけとして入れる。"Can you throw in ...?" で「〜をサービスしてくれる？」という意味。'},
+    ]
+  },
+  {
+    id:1, emoji:'🏋️', title:'Gym Locker Room Chat',
+    titleJa:'ジムの更衣室', situationJa:'ジム後の更衣室。トレーニング仲間と話している。',
+    chars:[{name:'Marcus',avatar:'💪'},{name:'You',avatar:'😅',right:true}],
+    dialogue:[
+      {c:0,en:"Dude, you absolutely crushed it today. That last set was insane.",ja:"お前今日マジで最高だったな。最後のセットは狂ってたよ。"},
+      {c:1,en:"Ha, thanks. I'm wrecked though. Can barely walk.",ja:"ははは、ありがと。でもボロボロ。ほぼ歩けない。",r:true},
+      {c:0,en:"That's how you know it worked. You been hitting legs twice a week?",ja:"それが効いた証拠。脚を週2回やってるのか？"},
+      {c:1,en:"Yeah, trying to stay consistent. You gotta put in the work, right?",ja:"うん、継続しようとして。やるべきことをやらないとな。",r:true},
+      {c:0,en:"Exactly. Hey, grab a shake after? On me.",ja:"そうそう。この後シェイク飲む？俺の奢り。"},
+    ],
+    vocab:[
+      {term:'Crush it',ja:'最高の結果を出す・圧倒する',ex:"You crushed it today!",
+        origin:{original:'押しつぶす・粉砕する（crush）',why:'敵や目標を「粉々にするほど圧倒する」イメージ。物理的な破壊の激しさ = 圧倒的な成功。競合相手や困難を「潰す」ほどの強さで勝つ = 最高の結果を出す、という意味に転じた。'}},
+      {term:'Wrecked',ja:'ボロボロ・疲れ果てた',ex:"I'm absolutely wrecked after that workout.",
+        origin:{original:'難破船・大破した乗り物（wreck）',why:'岩礁に乗り上げた難破船のように「もう動けない・壊れた」状態 = 極度の疲弊。"My car is wrecked."（車が大破した）と同じ語源で、人体の全損状態を表す。'}},
+      {term:'Consistent',ja:'継続的な・一貫した',ex:"The key is staying consistent.",
+        origin:{original:'ラテン語 consistere（一緒に立つ・安定している）',why:'「ぶれずに同じ場所に立ち続ける」イメージ。スポーツや仕事での「波がない・安定して続ける」能力を表す。consistent performance = 安定したパフォーマンス。'}},
+      {term:'Put in the work',ja:'努力を積み重ねる',ex:"You gotta put in the work to see results.",
+        origin:{original:'仕事・労働量（work）を投入する（put in）',why:'お金を貯金口座に「入れる（put in）」ように、努力・練習量を「積み立てる」イメージ。長期的な継続が必要という意味合いを含む。'}},
+    ],
+    quiz:[
+      {q:'"You crushed it" はどういう意味？',opts:['何かを壊した','最高の結果を出した','失敗した','疲れた'],ans:1,fb:'"Crush it" = 素晴らしい結果を出す・最高のパフォーマンスをする。ポジティブな誇張表現。'},
+      {q:'"I\'m wrecked" は？',opts:['怒っている','迷っている','疲れ果てた・ボロボロ','壊れた物がある'],ans:2,fb:'"Wrecked" = 完全に疲弊した。難破船のように「もう動けない」状態を表す口語表現。'},
+      {q:'"Put in the work" の意味は？',opts:['仕事を入れる','努力・練習を積み重ねる','職場で働く','仕事をやめる'],ans:1,fb:'"Put in the work" = 努力を重ねる、練習する。結果を出すために必要なことをするという意味。'},
+    ]
+  },
+  {
+    id:2, emoji:'🛒', title:'Grocery Store Run',
+    titleJa:'スーパーでひとこま', situationJa:'週末のスーパー。偶然知り合いに会った。',
+    chars:[{name:'Sarah (Neighbor)',avatar:'🛒'},{name:'You',avatar:'🥦',right:true}],
+    dialogue:[
+      {c:0,en:"Oh hey! I didn't recognize you at first — fancy seeing you here!",ja:"あら！最初わからなかった。こんなところで会うとは！"},
+      {c:1,en:"Ha, small world. Just doing a quick grocery run. How's everything?",ja:"ははは、狭い世界だ。ちょっと買い物だけ。最近どう？",r:true},
+      {c:0,en:"Honestly, swamped. Work has been non-stop lately.",ja:"正直、てんてこ舞いよ。最近仕事が休みなし。"},
+      {c:1,en:"Same here. Hey, you should take a breather this weekend.",ja:"こっちも。週末は少し休んだ方がいいよ。",r:true},
+      {c:0,en:"I know. Anyway, I'll let you go. Don't want to hold you up.",ja:"わかってるわ。じゃあ行かせるね。引き止めたくないから。"},
+    ],
+    vocab:[
+      {term:'Fancy seeing you',ja:'こんなところで会うとは！',ex:"Fancy seeing you here!",
+        origin:{original:'fancy = 想像する（古英語）',why:'"Fancy that!" = 「それを想像してみて！」が語源。「まさかここで会うとは想像もしなかった！」という驚きと喜びを表すイギリス英語発祥の表現。今はアメリカでも広く使われる。'}},
+      {term:'Swamped',ja:'超忙しい・てんてこ舞い',ex:"I've been totally swamped this week.",
+        origin:{original:'沼（swamp）に沈む・水没する',why:'沼に引き込まれて身動きが取れない状態が転用された。仕事や用事が「沼のように」押し寄せてきて身動きが取れない = 超多忙。drowning in work（仕事に溺れる）と似たイメージ。'}},
+      {term:'Take a breather',ja:'ひと息つく・少し休む',ex:"You need to take a breather.",
+        origin:{original:'呼吸する人・呼吸のチャンス（breather）',why:'激しい運動中に「一息つく（breathe）」ための休憩から。息ができないほど忙しい状態から「一回深呼吸できる休憩」= ちょっとした休憩・リフレッシュ。'}},
+      {term:'Hold up',ja:'引き止める・足止めする',ex:"I don't want to hold you up.",
+        origin:{original:'止める・支える（hold up）',why:'元は「手を上げて止める」ジェスチャーから。相手の進行を「手で止める」= 引き止める・時間を取らせる。"Sorry to hold you up" = 時間を取らせてごめんね。'}},
+    ],
+    quiz:[
+      {q:'"I\'ve been swamped" はどういう意味？',opts:['沼に落ちた','超忙しい・余裕がない','休んでいた','迷子になった'],ans:1,fb:'"Swamped" = 沼に飲み込まれたように忙しい。"I\'m swamped" で「てんてこ舞い」を表現できる。'},
+      {q:'"Take a breather" の意味は？',opts:['深呼吸の練習','外に出る','ひと息つく・少し休む','呼吸が苦しい'],ans:2,fb:'"Take a breather" = ちょっと休む・リフレッシュする。忙しい人へのアドバイスとして使える。'},
+      {q:'"I don\'t want to hold you up" の意味は？',opts:['あなたを持ち上げたくない','あなたを引き止めたくない','あなたを助けたい','立っていてほしい'],ans:1,fb:'"Hold up" = 引き止める・時間を取らせる。"I won\'t hold you up" = 長くは引き止めませんと言う丁寧な表現。'},
+    ]
+  },
+  {
+    id:3, emoji:'🍺', title:'Happy Hour with Friends',
+    titleJa:'ハッピーアワーで一杯', situationJa:'仕事終わりのバー。友達と金曜の夜を楽しんでいる。',
+    chars:[{name:'Jake',avatar:'🧔'},{name:'You',avatar:'😄',right:true}],
+    dialogue:[
+      {c:0,en:"Finally. What a week. I am so done.",ja:"やっと。最悪な一週間だった。もう限界。"},
+      {c:1,en:"Same. I've been grinding nonstop. I seriously needed this.",ja:"同じく。ずっとガムシャラにやってた。マジでこれが必要だった。",r:true},
+      {c:0,en:"Round's on me tonight. What are you having?",ja:"今夜は俺の奢りだよ。何飲む？"},
+      {c:1,en:"I'll take whatever's on tap. Surprise me.",ja:"タップのやつで何でもいい。お楽しみで。",r:true},
+      {c:0,en:"That's the spirit. We should do this every Friday — just decompress.",ja:"それがいい。毎週金曜これをやるべき。ただ気を抜く。"},
+    ],
+    vocab:[
+      {term:'Grinding',ja:'ガムシャラに働く・頑張り続ける',ex:"I've been grinding all week.",
+        origin:{original:'石臼でゴリゴリ挽く（grind）',why:'コーヒー豆を石臼で挽く単調で力のいる作業のイメージ。毎日同じことをゴリゴリ続ける = ひたすら努力する日々に転用。ゲームの「グラインド（レベル上げ）」も同語源。'}},
+      {term:"Round's on me",ja:'今回の一杯は俺の奢り',ex:"Round's on me — what're you drinking?",
+        origin:{original:'一巡り（round）を俺が負担する（on me）',why:'round = 全員に一杯ずつ行き渡る「一周分」。トランプの「ラウンド」と同語源。on me = 俺が費用を背負う。次は別の人の番という交互支払いの慣習から。'}},
+      {term:'On tap',ja:'生ビール・タップから直接',ex:"What do you have on tap?",
+        origin:{original:'蛇口・注ぎ口（tap）から直接出る状態',why:'tap = 樽や水道管についた注ぎ口。「蛇口から直接出る = すぐ使える」。生ビール以外にも "Resources are on tap."（リソースがすぐ使える）のように比喩的にも使われる。'}},
+      {term:'Decompress',ja:'ストレスを解放する・くつろぐ',ex:"I need to decompress after this week.",
+        origin:{original:'圧縮を解除する（de + compress）',why:'物理的な圧力（pressure）を解放するプロセスが転用。仕事やストレスで「圧縮された」状態の心と体を「解放する」= リラックスする。特にアメリカのビジネス環境でよく使われる。'}},
+    ],
+    quiz:[
+      {q:'"Round\'s on me" はどういう意味？',opts:['円形のもの','今回の一杯は俺が払う','ラウンドが終わった','俺の番だ'],ans:1,fb:'"Round" = 一回分の飲み物（全員の）。"It\'s on me" = 俺が払う。つまり「今回は俺の奢り」。'},
+      {q:'"On tap" は何を指す？',opts:['水道の蛇口','生ビール（タップから直接注ぐ）','アプリで注文','準備できてる'],ans:1,fb:'"On tap" = 樽から直接タップで注ぐビール。"What\'s on tap?" でどんな生ビールがあるかを聞く。'},
+      {q:'"I need to decompress" はどういう意味？',opts:['ファイルを解凍する','ストレスを解放したい・くつろぎたい','仕事をしたい','体の調子が悪い'],ans:1,fb:'"Decompress" = ストレスや緊張を解放する。ハードな一週間の後に「気を抜きたい」時によく使う。'},
+    ]
+  },
+  {
+    id:4, emoji:'🚗', title:'Rideshare Chat',
+    titleJa:'ライドシェアでの会話', situationJa:'夜のUber。ドライバーが気さくに話しかけてきた。',
+    chars:[{name:'Driver (Tom)',avatar:'🚗'},{name:'You',avatar:'👤',right:true}],
+    dialogue:[
+      {c:0,en:"How's your night going? Heading out or calling it a day?",ja:"今夜どうですか？これから出かけるとこ？それとも一日終わり？"},
+      {c:1,en:"Calling it. Long week — I'm totally beat.",ja:"帰りですよ。長い一週間で疲れ果てました。",r:true},
+      {c:0,en:"Tell me about it. I've been on since 6 AM. Non-stop fares.",ja:"わかりますよ。朝6時からずっと走ってます。休みなし。"},
+      {c:1,en:"Wow, that's a real grind. You must be counting down to days off.",ja:"それはキツい。休みを心待ちにしてるでしょうね。",r:true},
+      {c:0,en:"Ha, you have no idea. Two days off and I'm a whole new person.",ja:"ははは、それはもう。2日休んだら全く別人ですよ。"},
+    ],
+    vocab:[
+      {term:'Call it a day',ja:'今日はここまで・お開きにする',ex:"Let's call it a day.",
+        origin:{original:'この日（day）を終わりにすると宣言する',why:'労働の終わりに「今日という日に名前をつけて（call）終わらせる」イメージ。19世紀の工場労働から来た表現で、「今日の仕事量はこれで十分」と宣言する行為。'}},
+      {term:'Beat',ja:'疲れ果てた・くたくた',ex:"I'm totally beat.",
+        origin:{original:'叩かれた・打ち負かされた（beat の過去分詞）',why:'beat = 「叩く」。何度も叩かれて打ちのめされた状態 = へとへと。1950年代のビートニク文化（Beat Generation）も「疲れ果てた世代」という意味から来ている。'}},
+      {term:'A grind',ja:'しんどい仕事・大変な日々',ex:"This job is a grind, but it pays well.",
+        origin:{original:'ゴリゴリ挽く作業の名詞形（grind）',why:'石臼で豆を挽く単調でキツい反復作業のイメージ。毎日同じことをゴリゴリ繰り返す日々 = しんどい仕事。"the daily grind"（日々の退屈な仕事）という表現も定番。'}},
+      {term:'Count down to',ja:'〜を楽しみに心待ちにする',ex:"I'm counting down to the weekend.",
+        origin:{original:'ロケット発射前の逆算（count down）',why:'「10、9、8...1、発射！」というロケット打ち上げのカウントダウンから。楽しみなイベントへの到達を「逆から数える」= 心待ちにする。1960年代の宇宙開発ブームで世界的に広まった表現。'}},
+    ],
+    quiz:[
+      {q:'"Let\'s call it a day" の意味は？',opts:['今日という名前','今日はここまで・終わりにしよう','毎日やろう','今日は特別な日'],ans:1,fb:'"Call it a day" = 今日の仕事（活動）をここで終わりにする。仕事の終わりや活動を切り上げる時に使う。'},
+      {q:'"I\'m totally beat" はどういう意味？',opts:['音楽のビート','負けた','疲れ果てた・ヘトヘト','殴られた'],ans:2,fb:'"Beat" は口語で「疲れ果てた・くたくた」の意味。"I\'m beat" = 「もうヘトヘト」。totally がついて強調。'},
+      {q:'"Counting down to the weekend" の意味は？',opts:['週末の日数を数える','週末が待ち遠しい','週末は終わった','週末が嫌いだ'],ans:1,fb:'"Count down to" = 〜を楽しみに待つ、心待ちにしている。ロケット発射のカウントダウンが語源。'},
+    ]
+  },
+  {
+    id:5, emoji:'🏘️', title:'Backyard BBQ',
+    titleJa:'近所のBBQ', situationJa:'週末の庭でBBQ。隣人が声をかけてきた。',
+    chars:[{name:'Mike (Neighbor)',avatar:'🍖'},{name:'You',avatar:'🔥',right:true}],
+    dialogue:[
+      {c:0,en:"Smells amazing over here! You're firing up the grill already?",ja:"こっちすごくいい匂いしてるよ！もうグリル焼き始めたの？"},
+      {c:1,en:"Yeah! You and the family should come over. The more the merrier.",ja:"そうだよ！家族で来なよ。多い方が楽しいから。",r:true},
+      {c:0,en:"Really? That's awesome. Should we bring anything?",ja:"本当に？最高だ。何か持ってこようか？"},
+      {c:1,en:"Just bring yourselves. I've got more food than I know what to do with.",ja:"手ぶらで来て。食べきれないくらい食材あるから。",r:true},
+      {c:0,en:"You're too kind. Give us 20 minutes — we'll be right over.",ja:"優しすぎる。20分くれたら行くよ。すぐ来る。"},
+    ],
+    vocab:[
+      {term:'Fire up',ja:'始動する・スタートさせる',ex:"Let's fire up the grill!",
+        origin:{original:'炎（fire）を立ち上げる（up）',why:'古代の炉や蒸気機関を「炎で起動させる」ことから。エンジンや機械を「点火して動かす」= 何かを始動させる。"Fire up the engine" = エンジンをかける。やる気を起こさせる意味でも使う。'}},
+      {term:'The more the merrier',ja:'多ければ多いほど楽しい',ex:"The more the merrier! Bring your friends.",
+        origin:{original:'多ければ多いほど（the more）陽気になる（merrier）',why:'中世の宴会文化から来た慣用表現。"The more, the merrier." の省略形で、人数が増えるほどパーティーが盛り上がるという考え方から。'}},
+      {term:'More than I know what to do with',ja:'持て余すほど・多すぎる',ex:"I have more food than I know what to do with.",
+        origin:{original:'対処の仕方がわからないほど多い',why:'自分のキャパシティを超えた量の比喩。「どう対処したらいいかわからない」ほど多い = 持て余している。有り余るほどの量を謙遜や感謝のニュアンスで表現する。'}},
+      {term:'Right over',ja:'すぐそこに・すぐ行く',ex:"I'll be right over!",
+        origin:{original:'今すぐ（right）向こう側へ（over）',why:'right = すぐ・まさに、over = 向こう側へ移動する。「今すぐあなたのところへ移動する」= すぐ来る。電話や対面で"I\'ll be right there." も同義。'}},
+    ],
+    quiz:[
+      {q:'"Fire up the grill" はどういう意味？',opts:['グリルに火をつける・始動させる','グリルを捨てる','怒る','火事になる'],ans:0,fb:'"Fire up" = 点火して起動させる。グリルだけでなく "fire up the engine" や "fire up the team"（チームを盛り上げる）にも使う。'},
+      {q:'"The more the merrier" は？',opts:['もっと深刻に','多ければ多いほど楽しい','少ない方がいい','静かにして'],ans:1,fb:'"The more the merrier" = 人が多い方が楽しい。パーティーや集まりに誰かを誘う時の表現。'},
+      {q:'"I\'ll be right over" の意味は？',opts:['すぐそっちに行く','もう終わった','正しいやり方','上から右に'],ans:0,fb:'"Right over" = すぐに向こうへ行く。"Be right over" / "Be right there" = 「すぐ行く」。'},
+    ]
+  },
+  {
+    id:6, emoji:'🥞', title:'Weekend Brunch',
+    titleJa:'週末のブランチ', situationJa:'日曜のブランチ。友達とカフェでのんびりしている。',
+    chars:[{name:'Alex',avatar:'🧇'},{name:'You',avatar:'☕',right:true}],
+    dialogue:[
+      {c:0,en:"Okay, I'm obsessed with this place. Look at this menu!",ja:"このお店、完全にハマった。このメニュー見てよ！"},
+      {c:1,en:"Right? It's such a vibe in here. I'm glad we finally made it.",ja:"だよね？ここマジで雰囲気いい。やっと来れてよかった。",r:true},
+      {c:0,en:"Get the eggs benedict. It's apparently to die for.",ja:"エッグベネディクト頼みなよ。めちゃくちゃ美味いって話だよ。"},
+      {c:1,en:"Sold. And I can't function without coffee first, so that's happening.",ja:"それで決まり。まずコーヒーなしでは無理だから、それが先。",r:true},
+      {c:0,en:"Same. Mimosas after? We've earned it, honestly.",ja:"同じく。この後ミモザ飲む？正直、頑張ったご褒美だよ。"},
+    ],
+    vocab:[
+      {term:'Obsessed with',ja:'〜にドハマリしてる・夢中',ex:"I'm totally obsessed with this new café.",
+        origin:{original:'包囲された（ラテン語 obsidere）',why:'元は「悪魔に憑かれた・包囲された」という宗教的な意味。頭の中を「占領」される状態が現代英語に定着。今はポジティブな強い関心・熱中にも使う。'}},
+      {term:'A vibe',ja:'独特の雰囲気・ムード',ex:"This place has such a great vibe.",
+        origin:{original:'振動・波動（vibration の短縮形）',why:'1960年代のヒッピー文化で場や人が発する「エネルギーの波動（good vibrations）」を表現した。The Beach Boys の "Good Vibrations" が有名。現代の若者英語で最もよく使われる言葉の一つ。'}},
+      {term:'To die for',ja:'めちゃくちゃ美味しい・最高に良い',ex:"Their pancakes are to die for.",
+        origin:{original:'〜のために命を投げ出す（to die for）',why:'「命をかけるほどの価値がある」= 究極の誇張（hyperbole）。実際に危険ではなく、それほど素晴らしいという最大級の賛辞。食べ物への称賛でよく使われる。'}},
+      {term:'Sold',ja:'決めた！それでいく！（即決）',ex:'"Try the eggs benedict." — "Sold."',
+        origin:{original:'売れた・売買成立した（sell の過去形）',why:'商取引での「成約！売れた！」の瞬間から。「説得されて = もう買った（決めた）」をセールスの成約に例えた表現。相手の提案に即座にYESする時の一言返し。'}},
+    ],
+    quiz:[
+      {q:'"I\'m obsessed with this place" の意味は？',opts:['ここが心配','ここにドハマリしてる','ここが嫌い','ここをよく知ってる'],ans:1,fb:'"Obsessed with" = 〜に夢中・ハマっている。ポジティブな強い関心を表す口語表現。'},
+      {q:'"This place has such a vibe" の "vibe" は？',opts:['振動・震え','雰囲気・ムード・感じ','音楽','特別なメニュー'],ans:1,fb:'"Vibe" = 場所や人が持つ独特の雰囲気や感じ。"Good vibes" でポジティブなムードを表す。'},
+      {q:'"It\'s to die for" はどういう意味？',opts:['危険だ','死ぬほど嫌だ','めちゃくちゃ美味しい・最高','死にそうに辛い'],ans:2,fb:'"To die for" = 死ぬほど素晴らしい = 最高に美味しいor良い。食べ物を絶賛する時によく使う。'},
+    ]
+  },
+];
+
+// ═══════════════════════════════════════════════════
+//  SCENARIO DATA  — BUSINESS (7 situations)
+// ═══════════════════════════════════════════════════
+const SCENARIOS_BUSINESS = [
+  {
+    id:0, emoji:'💼', title:'Job Interview',
+    titleJa:'就職面接', situationJa:'スタートアップの面接。インタビュアーと話している。',
+    chars:[{name:'Interviewer (Lisa)',avatar:'👩‍💼'},{name:'You',avatar:'🤝',right:true}],
+    dialogue:[
+      {c:0,en:"Thanks for coming in. Tell me — what drew you to this role?",ja:"来てくれてありがとう。この役職に惹かれた理由を教えてください。"},
+      {c:1,en:"I've been following your company for a while. The mission really resonates with me.",ja:"御社をしばらくフォローしていました。ミッションが自分に響きます。",r:true},
+      {c:0,en:"Great. Can you walk me through a project where you took initiative?",ja:"いいですね。自分で主導したプロジェクトを説明してもらえますか？"},
+      {c:1,en:"Sure. At my last job, I identified a gap and pitched a solution to the team.",ja:"はい。前職でギャップを特定し、チームにソリューションを提案しました。",r:true},
+      {c:0,en:"I love that. We're looking for people who are proactive. You seem like a great fit.",ja:"いいですね。積極的に動ける人を探しています。あなたはぴったりそうです。"},
+    ],
+    vocab:[
+      {term:'Resonate with',ja:'〜に共感する・響く',ex:"The company's mission really resonates with me.",
+        origin:{original:'共鳴する・振動を共有する（resonate）',why:'音叉が同じ周波数で振動する「共鳴（resonance）」から転用。価値観や考えが自分の中の何かと「同じ周波数で振動する」= 深く共感する・心に響く。ビジネスや自己表現でよく使われる。'}},
+      {term:'Walk me through',ja:'順を追って説明する',ex:"Can you walk me through your process?",
+        origin:{original:'私を（通り）歩かせる（walk through）',why:'誰かを手を引いて「一歩ずつ場所を案内する」ガイドのイメージ。複雑なプロセスを「一歩ずつ案内するように」説明する = 順を追って説明する。面接・会議・マニュアルでよく使われる。'}},
+      {term:'Take initiative',ja:'主体的に動く・自ら率先する',ex:"She always takes initiative on new projects.",
+        origin:{original:'主導権（initiative）を取る',why:'initiative = 最初の一手・先制権（ラテン語 initium = 始まり）。「自分が最初に動く権利」を取る = 誰かに言われる前に自ら動く。ビジネスでは高く評価される姿勢を表す重要なフレーズ。'}},
+      {term:'Proactive',ja:'積極的・先手を打つ',ex:"We're looking for someone who is proactive.",
+        origin:{original:'前もって（pro）行動する（active）',why:'pro = 前に（ラテン語）+ active = 行動する。問題が起きてから対処するのではなく、「起きる前に先手を打つ」姿勢。reactive（反応的）の対義語として面接でよく使われるキャリアワードの一つ。'}},
+    ],
+    quiz:[
+      {q:'"This resonates with me" の意味は？',opts:['これは難しい','これには興味がない','これに共感する・響く','これは大きすぎる'],ans:2,fb:'"Resonate with" = 深く共感する・心に響く。面接や自己表現でよく使われる洗練された表現。'},
+      {q:'"Walk me through your experience" は？',opts:['一緒に歩く','どこかへ連れて行く','経験を順を追って説明する','早く話す'],ans:2,fb:'"Walk me through" = 一歩ずつ案内するように説明する。面接やプレゼンでよく使われる表現。'},
+      {q:'"We need someone proactive" はどういう意味？',opts:['積極的・先手を打って動ける人','反応が早い人','経験豊富な人','英語が得意な人'],ans:0,fb:'"Proactive" = 問題が起きる前に先手を打って動く姿勢。reactive（受け身）の対義語として面接でよく使われる。'},
+    ]
+  },
+  {
+    id:1, emoji:'📊', title:'Team Standup Meeting',
+    titleJa:'チームスタンドアップ', situationJa:'月曜朝のスタンドアップ。チームで進捗を共有している。',
+    chars:[{name:'Manager (David)',avatar:'👨‍💼'},{name:'You',avatar:'💻',right:true}],
+    dialogue:[
+      {c:0,en:"Okay team, let's kick things off. What's everyone working on this week?",ja:"では始めましょう。今週みんな何に取り組んでいますか？"},
+      {c:1,en:"I'm picking up where I left off on the dashboard redesign. Should wrap it up by Thursday.",ja:"ダッシュボードのリデザインの続きをやります。木曜までには片付けられそうです。",r:true},
+      {c:0,en:"Nice. Any blockers?",ja:"いいですね。何かブロッカーはありますか？"},
+      {c:1,en:"Just waiting on feedback from the design team. Gonna loop them in today.",ja:"デザインチームのフィードバック待ちです。今日連絡を取ります。",r:true},
+      {c:0,en:"Perfect. Keep me in the loop if anything comes up. Let's get after it.",ja:"いいですね。何かあれば随時報告してください。さあやりましょう。"},
+    ],
+    vocab:[
+      {term:'Kick off',ja:'キックオフする・スタートする',ex:"Let's kick things off with the weekly update.",
+        origin:{original:'サッカーのキックオフ（試合開始の蹴り出し）',why:'サッカーで試合開始のボールを蹴る「キックオフ」が起源。ゲームを正式にスタートさせる瞬間のイメージが「物事を始める」に転用。会議・プロジェクト・シーズン開始で広く使われる。'}},
+      {term:'Pick up where I left off',ja:'（前回の）続きから始める',ex:"Let me pick up where I left off.",
+        origin:{original:'置いた場所（where I left off）から拾い上げる（pick up）',why:'物を置いた場所から「拾い直す」イメージ。仕事・読書・会話など「中断した場所から再開する」行為の比喩。"left off" = やめた・止まった場所。'}},
+      {term:'Loop in',ja:'情報共有の輪に入れる・連絡する',ex:"Can you loop me in on that?",
+        origin:{original:'ループ（輪）に入れる',why:'情報の流れを「輪（loop）」のイメージで表現。輪の中に人を「入れる（loop in）」= その情報サークルに加える = 情報共有・連絡する。"Keep someone in the loop" = 情報を継続的に共有するの形でも使われる。'}},
+      {term:'Get after it',ja:'さあやろう・積極的に取り掛かる',ex:"Alright team, let's get after it!",
+        origin:{original:'（仕事）の後ろに迫る・追いかける（get after）',why:'目標や仕事を「追いかけにいく」= 積極的に取り掛かる。スポーツでよく使われる表現で「積極的な姿勢で取り組む」ニュアンス。"go for it" よりも激しい積極性を含む。'}},
+    ],
+    quiz:[
+      {q:'"Let\'s kick things off" の意味は？',opts:['ものを蹴る','さあ始めよう','立ち去ろう','蹴って捨てよう'],ans:1,fb:'"Kick off" = スタートする・始める。会議やプロジェクトの開始でよく使われる表現。'},
+      {q:'"Loop me in" は何を意味する？',opts:['輪っかに入れる','情報を共有して・連絡して','混乱させる','除外する'],ans:1,fb:'"Loop in" = 情報共有の輪に入れる。"Keep me in the loop" = 継続的に情報を共有してという表現とセットで覚えよう。'},
+      {q:'"Pick up where I left off" の意味は？',opts:['もの拾いをする','左に曲がる','前回の続きから始める','もう一度最初からやる'],ans:2,fb:'"Pick up where I left off" = 中断したところから再開する。会議・仕事・読書など様々な文脈で使える表現。'},
+    ]
+  },
+  {
+    id:2, emoji:'📞', title:'Client Check-in Call',
+    titleJa:'クライアントとの定期通話', situationJa:'定期的なクライアントとの電話。状況を確認している。',
+    chars:[{name:'Client (Rachel)',avatar:'📞'},{name:'You',avatar:'💼',right:true}],
+    dialogue:[
+      {c:0,en:"Thanks for jumping on the call. How are things progressing on your end?",ja:"電話に出てくれてありがとう。そちらの進捗はどうですか？"},
+      {c:1,en:"Good news — we're on track to hit the deadline. A few things are still in the pipeline.",ja:"いい知らせです。デッドラインに向けて順調です。いくつかまだ進行中ですが。",r:true},
+      {c:0,en:"Great. Any concerns I should know about?",ja:"いいですね。私が知っておくべき懸念点はありますか？"},
+      {c:1,en:"Minor ones. We flagged a potential delay in testing, but we're getting ahead of it.",ja:"軽微なものがあります。テストで潜在的な遅れを察知しましたが、先手を打っています。",r:true},
+      {c:0,en:"Sounds good. Let's circle back next week to touch base.",ja:"よさそうです。来週また話して状況確認しましょう。"},
+    ],
+    vocab:[
+      {term:'On track',ja:'予定通り・順調',ex:"The project is on track to finish by Friday.",
+        origin:{original:'線路（track）の上にいる',why:'鉄道が正しいレールの上を走っている = 予定のルートから外れていない。電車が脱線せずに目的地へ向かうイメージ。"off track" = 脱線した・予定から外れた、の反対語。'}},
+      {term:'In the pipeline',ja:'進行中・準備中',ex:"We have several updates in the pipeline.",
+        origin:{original:'パイプラインの中を流れている',why:'石油・ガスのパイプライン（輸送管）が語源。原油がパイプの中を「流れ中」= 輸送中・処理中。ビジネスでは受注・製品開発の進行中案件を指す。'}},
+      {term:'Flag',ja:'問題・懸念を知らせる・フラグを立てる',ex:"I wanted to flag a potential issue.",
+        origin:{original:'旗（flag）を振って注意を引く',why:'旗を振ることで警告・注意を知らせる軍隊・交通の慣習から。「旗を立てる」= 注意喚起のサイン。ビジネスでは「問題を報告する・注意を促す」の意味。IT用語の「フラグ」も同語源。'}},
+      {term:'Circle back',ja:'後でまた話す・振り返る',ex:"Let's circle back on this next week.",
+        origin:{original:'円を描いて戻る（circle back）',why:'飛行機や車が「もと来た場所に円を描いて戻る」航法の表現から。議論や作業を「ぐるりと回って元の話題に戻る」= 後日再度確認する。会議でよく使われるビジネス英語の定番表現。'}},
+    ],
+    quiz:[
+      {q:'"The project is on track" の意味は？',opts:['プロジェクトが線路上にある','プロジェクトは予定通り順調','プロジェクトが遅れている','プロジェクトは終わった'],ans:1,fb:'"On track" = 予定通り・順調。"off track" = 遅れている・計画から外れているの反対語。'},
+      {q:'"In the pipeline" は？',opts:['パイプ作業中','進行中・準備中','完了した','問題がある'],ans:1,fb:'"In the pipeline" = まだ完成していないが進行中。ビジネスでは受注中の案件や開発中の機能に使う。'},
+      {q:'"Let\'s circle back" の意味は？',opts:['丸を描く','後でまた話そう・確認しよう','もう終わり','一緒に行こう'],ans:1,fb:'"Circle back" = 後日もう一度その話題に戻る。"Circle back on this" で「後でこの件を再度確認する」という意味。'},
+    ]
+  },
+  {
+    id:3, emoji:'🤝', title:'Networking Event',
+    titleJa:'ネットワーキングイベント', situationJa:'業界イベント。初めて会う人に話しかけた。',
+    chars:[{name:'Tyler',avatar:'🤝'},{name:'You',avatar:'😊',right:true}],
+    dialogue:[
+      {c:1,en:"Hey, great event! I'm [Name]. What brings you here tonight?",ja:"いいイベントですね！[名前]といいます。今夜は何でここに？",r:true},
+      {c:0,en:"Tyler. I'm in product at a fintech startup. You?",ja:"タイラーです。フィンテックのスタートアップでプロダクトをやってます。あなたは？"},
+      {c:1,en:"Marketing. We might actually be in overlapping spaces.",ja:"マーケティングです。実は私たちって近い領域かもしれませんね。",r:true},
+      {c:0,en:"No kidding! Let's swap info. Would love to grab coffee and brainstorm sometime.",ja:"本当に！連絡先を交換しよう。いつかコーヒーしてブレストしたい。"},
+      {c:1,en:"Definitely. Here's my card. Looking forward to it.",ja:"ぜひ。これが名刺です。楽しみにしています。",r:true},
+    ],
+    vocab:[
+      {term:'What brings you here',ja:'今日はどのような用件で・何でここに',ex:"What brings you here today?",
+        origin:{original:'何があなたをここへ連れてきたのか（bring）',why:'"bring" = 連れてくる・持ってくる。「あなたをここに連れてきた理由・目的は？」= 来た目的・経緯を尋ねる表現。直接的な "Why are you here?" より丁寧でフォーマルなニュアンス。'}},
+      {term:'Overlapping',ja:'重なり合う・共通する部分がある',ex:"Our work is overlapping more and more.",
+        origin:{original:'上に重なる（overlap）',why:'2枚のシートが「上に重なって一部が共有される」物理的なイメージ。業界・ターゲット・スキルが「一部重なっている」= 共通点がある。ビジネスでのコラボや競合関係の話でよく使われる。'}},
+      {term:'Swap info',ja:'連絡先を交換する',ex:"Let's swap contact info.",
+        origin:{original:'交換する（swap）',why:'swap = 中世英語で「握手で合意する」ことから。14世紀の市場で取引が握手で成立したことから「交換する」の意味に。今は連絡先・カード・アイデアなど様々なものを「交換する」場面で使われる。'}},
+      {term:'Brainstorm',ja:'ブレインストーミング・アイデアを出し合う',ex:"Let's brainstorm ideas for the campaign.",
+        origin:{original:'脳（brain）の嵐（storm）',why:'1953年に広告マンのAlex Osborn が考案した会議手法。「嵐のように脳からアイデアを降らせる」イメージ。批判なしに自由にアイデアを出し合う手法の名前が動詞として定着した。'}},
+    ],
+    quiz:[
+      {q:'"What brings you here?" の意味は？',opts:['誰が連れてきた？','何でここに来たの・目的は？','どうやって来た？','何時に来た？'],ans:1,fb:'"What brings you here?" = 来た目的・理由を尋ねる表現。"Why are you here?" より丁寧で、ネットワーキングでよく使われる。'},
+      {q:'"Our work is overlapping" は？',opts:['仕事が重なって大変','仕事に共通点・接点がある','仕事が終わった','仕事が重すぎる'],ans:1,fb:'"Overlapping" = 重なり合う。業界・ターゲット・スキルに共通する部分があることを表す。コラボの糸口として使われる表現。'},
+      {q:'"Let\'s swap info" の意味は？',opts:['情報を調べる','連絡先を交換しよう','情報を隠す','一緒に勉強する'],ans:1,fb:'"Swap info" = 連絡先（情報）を交換する。"Let\'s exchange contact info." と同じ意味でよりカジュアルな表現。'},
+    ]
+  },
+  {
+    id:4, emoji:'🎯', title:'Performance Review',
+    titleJa:'人事評価面談', situationJa:'四半期末の評価面談。マネージャーと1対1のミーティング。',
+    chars:[{name:'Manager (Karen)',avatar:'📋'},{name:'You',avatar:'🎯',right:true}],
+    dialogue:[
+      {c:0,en:"Overall, you've had a strong quarter. You really stepped up on the Henderson account.",ja:"総合的に、今四半期は好調でしたね。ヘンダーソン案件では特に頑張りましたね。"},
+      {c:1,en:"Thank you. That was a stretch project for me, but I pushed through.",ja:"ありがとうございます。挑戦的なプロジェクトでしたが、やり遂げました。",r:true},
+      {c:0,en:"Exactly. Where do you want to grow in the next quarter?",ja:"そうですね。来四半期はどこを伸ばしたいですか？"},
+      {c:1,en:"I'd love to take on more leadership — maybe own a project end-to-end.",ja:"リーダーシップをもっと発揮したいです。プロジェクトを最初から最後まで担当したい。",r:true},
+      {c:0,en:"I love that ambition. Let's set some concrete goals and check in monthly.",ja:"その意欲は素晴らしい。具体的な目標を設定して、毎月確認しましょう。"},
+    ],
+    vocab:[
+      {term:'Step up',ja:'一歩踏み出す・期待以上の働きをする',ex:"She really stepped up when we needed her.",
+        origin:{original:'一歩前に踏み出す（step up）',why:'物理的に「一段上に足を踏み出す」動作から。困難な状況で「前に一歩踏み出して行動する」= 状況に立ち向かう・期待以上の働きをする。"step up to the plate"（打席に立つ）という表現とも繋がる。'}},
+      {term:'Stretch project',ja:'成長を促す挑戦的なプロジェクト',ex:"This is a great stretch project for you.",
+        origin:{original:'伸ばす（stretch）プロジェクト',why:'stretch = 限界まで引き伸ばす。現在の能力の「限界を伸ばす」ように設計されたプロジェクト = 現在のスキルより少し上のレベルを求められる課題。職場での成長を促すための重要な概念。'}},
+      {term:'Push through',ja:'やり遂げる・困難を乗り越える',ex:"We pushed through and finished on time.",
+        origin:{original:'押し通る・突き抜ける（push through）',why:'障害物を「押しながら通り抜ける」物理的な動作から。困難や疲れを「押しのけて」目標を達成する = 諦めずにやり遂げる。"push" の積極性と "through" の「突破」感が合わさった表現。'}},
+      {term:'End-to-end',ja:'最初から最後まで・全工程を',ex:"I want to own this project end-to-end.",
+        origin:{original:'端から端まで（end-to-end）',why:'製品の「製造から販売まで」などの供給チェーン全体を指す工業用語から。プロジェクトや業務の「開始から完了まで全部」を担当する = 全工程を責任を持って担う。ITやビジネス戦略で頻出のフレーズ。'}},
+    ],
+    quiz:[
+      {q:'"She stepped up" はどういう意味？',opts:['歩いた','困難な状況で頑張った・立ち上がった','昇進した','一歩引いた'],ans:1,fb:'"Step up" = 困難な状況や高い期待に対して前に踏み出す・期待以上の働きをする。職場で高く評価される姿勢を表す。'},
+      {q:'"A stretch project" とは？',opts:['長いプロジェクト','簡単なプロジェクト','現在のスキルを超えた挑戦的な課題','ストレッチ体操'],ans:2,fb:'"Stretch project" = 現在の能力の限界を少し超えた、成長を促す挑戦的なプロジェクト。キャリア開発の文脈でよく使われる。'},
+      {q:'"End-to-end ownership" はどういう意味？',opts:['終わりまで','最初から最後まで全工程を担当する','端から端まで歩く','最初だけ担当する'],ans:1,fb:'"End-to-end" = 最初から最後まで全部。"Own it end-to-end" = そのプロジェクトの全工程に責任を持つ。'},
+    ]
+  },
+  {
+    id:5, emoji:'🍽️', title:'Business Lunch',
+    titleJa:'ビジネスランチ', situationJa:'クライアントとのランチ。食事しながらビジネスの話をしている。',
+    chars:[{name:'Client (James)',avatar:'🍽️'},{name:'You',avatar:'🤵',right:true}],
+    dialogue:[
+      {c:0,en:"This place is great, good call. So, how has the rollout been going?",ja:"いいお店だね、ナイスな選択。ローンチの進み具合はどうですか？"},
+      {c:1,en:"Smoother than expected. We hit our Q1 targets ahead of schedule.",ja:"予想より順調です。Q1の目標を前倒しで達成しました。",r:true},
+      {c:0,en:"That's impressive. What's your roadmap looking like going forward?",ja:"それは素晴らしい。今後のロードマップはどうなっていますか？"},
+      {c:1,en:"We're doubling down on user retention and rolling out two major features in Q2.",ja:"ユーザーリテンションに注力して、Q2に2つの主要機能をローンチします。",r:true},
+      {c:0,en:"Love it. I think there's a lot of runway here. Let's talk next steps.",ja:"いいですね。まだまだ可能性があると思います。次のステップを話しましょう。"},
+    ],
+    vocab:[
+      {term:'Good call',ja:'いい判断・ナイスな選択',ex:"Going with Plan B was a good call.",
+        origin:{original:'良い判断・コール（審判の判定）',why:'スポーツで審判が「コール（宣言）」する判定から。「良いコール」= 正しい判断・適切な決断。"Bad call" の反対。ビジネス・日常会話で幅広く「いい選択をした」時に使われる。'}},
+      {term:'Ahead of schedule',ja:'予定より早く・前倒しで',ex:"We finished the project ahead of schedule.",
+        origin:{original:'スケジュール（schedule）の前（ahead）に',why:'"ahead" = 前方に・先に。「スケジュールより前のポジションにいる」= 予定より早く進んでいる状態。反対は "behind schedule"（予定より遅れている）。プロジェクト管理で必須のフレーズ。'}},
+      {term:'Double down',ja:'強化する・さらに力を入れる',ex:"We're doubling down on our marketing efforts.",
+        origin:{original:'ブラックジャックで掛け金を2倍にする（double down）',why:'自信のある手札の時にカジノで「賭け金を倍にする」行為から。「勝てると確信して投資・努力を倍増する」= ある戦略に一層力を入れる。ビジネスでは「特定の分野に集中投資する」意味で使われる。'}},
+      {term:'Runway',ja:'余地・可能性・残り時間',ex:"We have a lot of runway before the next milestone.",
+        origin:{original:'飛行機の滑走路（runway）',why:'飛行機が離陸するために必要な「走る距離（runway）」から。スタートアップでは「資金が尽きるまでの残り時間」を指す。より広く「まだ可能性・伸びしろがある」という意味でも使われる。'}},
+    ],
+    quiz:[
+      {q:'"Good call" はどういう意味？',opts:['電話がいい','いい判断・ナイスな選択','大きな声で叫ぶ','呼び出しが多い'],ans:1,fb:'"Good call" = 良い判断・適切な決断。スポーツの審判のコール（判定）から来た表現。'},
+      {q:'"Ahead of schedule" は？',opts:['スケジュールの先に立つ','予定より早く進んでいる・前倒し','スケジュールが遅れている','まだ計画がない'],ans:1,fb:'"Ahead of schedule" = 予定より早く。"behind schedule"（遅れ）の反対。プロジェクト進捗でよく使う表現。'},
+      {q:'"We\'re doubling down on retention" の意味は？',opts:['リテンション率が倍になった','リテンションへの取り組みをさらに強化する','リテンションを半分に減らす','倍の人員を採用する'],ans:1,fb:'"Double down on" = ある分野・戦略に一層力を入れる。カジノで賭け金を倍にするブラックジャックの戦術から来た表現。'},
+    ]
+  },
+  {
+    id:6, emoji:'🧃', title:'Water Cooler Chat',
+    titleJa:'社内のちょっとした雑談', situationJa:'オフィスの休憩エリア。コーヒーを入れながら同僚と話している。',
+    chars:[{name:'Chris (Coworker)',avatar:'☕'},{name:'You',avatar:'🧑‍💻',right:true}],
+    dialogue:[
+      {c:0,en:"Hey! Did you catch the all-hands this morning? Big news.",ja:"よっ！今朝の全社会議見た？大きなニュースだったね。"},
+      {c:1,en:"I did. I'm honestly still processing the reorg announcement.",ja:"見たよ。正直まだ組織再編の発表を消化しきれてない。",r:true},
+      {c:0,en:"Same. But between you and me, I think it could be good for the team.",ja:"同じく。でも、ここだけの話、チームにとってはよくなるかもしれないね。"},
+      {c:1,en:"Maybe. I just hope it doesn't shake things up too much. We finally hit our stride.",ja:"かもね。あまり大きく変わらないといいな。やっとリズムに乗ってきたところだから。",r:true},
+      {c:0,en:"Fair point. Hey, wanna grab lunch later? I could use a change of scenery.",ja:"確かに。ねえ、後でランチ行かない？気分転換したいな。"},
+    ],
+    vocab:[
+      {term:'All-hands',ja:'全社員参加の会議・全社集会',ex:"We have an all-hands meeting on Friday.",
+        origin:{original:'「全員の手（all hands）」を甲板に集める船の命令',why:'"All hands on deck!" = 「全員甲板へ！」という緊急の船の号令から。全員が参加・協力が必要な緊急事態を表した。現在は企業の「全社員が参加する会議」の意味で定着。'}},
+      {term:'Between you and me',ja:'ここだけの話・内緒だけど',ex:"Between you and me, I think he's leaving.",
+        origin:{original:'あなたと私の間（between）だけの',why:'2人の人間の「間」= 外に漏れない閉じた空間のイメージ。「2人の間だけに留まる」= 誰にも言わない約束をしながら話す表現。"Just between us" も同義。'}},
+      {term:'Hit your stride',ja:'リズムに乗る・最高の調子になる',ex:"The team has really hit its stride.",
+        origin:{original:'歩幅（stride）に入る・乗る',why:'長距離走で「自分に合ったリズムとペースの歩幅（stride）を見つける」状態から。ランナーが最も効率よく走れるリズムに入る = パフォーマンスが最高になる状態。チームや個人の「本領発揮」を表す。'}},
+      {term:'Change of scenery',ja:'気分転換・環境を変える',ex:"I could use a change of scenery.",
+        origin:{original:'景色・背景（scenery）を変える',why:'劇場の「舞台の背景（scenery）を転換する」ことから。場所や環境を変えることで「気分をリフレッシュする」= 気分転換。"I could use" = 〜があると助かる・〜したい、という遠回しな表現。'}},
+    ],
+    quiz:[
+      {q:'"We have an all-hands" はどういう意味？',opts:['手が全部必要','全社員参加の会議がある','全員で手伝う','たくさんの手作り品がある'],ans:1,fb:'"All-hands (meeting)" = 全社員・全チームが参加する会議。船の "All hands on deck!" から来た職場用語。'},
+      {q:'"Between you and me" は？',opts:['あなたと私の間に立つ','ここだけの話・内緒だが','比較する','2人で決める'],ans:1,fb:'"Between you and me" = この話は2人の間だけで、ここだけの話。秘密の情報を共有する前置きとして使う表現。'},
+      {q:'"We\'ve hit our stride" の意味は？',opts:['大きな一歩を踏み出した','転倒した','最高の調子・リズムに乗れている','目標を達成した'],ans:2,fb:'"Hit your stride" = 最高の調子・リズムになる。長距離走のランナーが理想的なペースを見つけるイメージから。'},
+    ]
+  },
+];
+
+// ═══════════════════════════════════════════════════
+//  BOSS DATA  (3 rotating weekly bosses)
+// ═══════════════════════════════════════════════════
+const BOSSES = [
+  { name:'Grammar Ghoul', emoji:'👻', color:'#7d3c98',
+    intro:'文法の悪霊が現れた！正しい英語で立ち向かえ！',
+    questions:[
+      {q:'"She don\'t know" の正しい形は？',opts:["She don't know","She doesn't know","She not know","She no know"],ans:1,fb:'"She" は三人称単数なので "doesn\'t" を使う。"She doesn\'t know."'},
+      {q:'"I have went there" の正しい形は？',opts:["I have went","I has gone","I have gone","I gone"],ans:2,fb:'現在完了形は "have/has + 過去分詞"。go の過去分詞は "gone"。"I have gone there." が正しい形。'},
+      {q:'空欄に入る正しい語は？ "It\'s ___ cold today."',opts:["so","such","very so","real much"],ans:0,fb:'"So" は形容詞の前に置いて強調する。"It\'s so cold today." (such は "such a cold day" のように名詞の前)'},
+      {q:'"Between you and ___" — 正しいのは？',opts:["I","me","my","mine"],ans:1,fb:'前置詞 "between" の後は目的格。"Between you and me." (I は主格なので間違い)'},
+      {q:'"I\'m good" vs "I\'m well" — バーテンダーに「調子どう？」と聞かれたら？',opts:["どちらも自然","I'm good のみ正しい","I'm well のみ正しい","どちらも間違い"],ans:0,fb:'口語ではどちらも使われる。"I\'m good" はカジュアル、"I\'m well" はより formal。日常会話では両方OK。'},
+    ]},
+  { name:'Slang Dragon', emoji:'🔥', color:'#e74c3c',
+    intro:'スラングドラゴンが現れた！ネイティブスラングで立ち向かえ！',
+    questions:[
+      {q:'"I\'m down" はどういう意味？',opts:["落ち込んでいる","参加したい・やる気がある","断る","転倒した"],ans:1,fb:'"I\'m down" = やる気がある・参加したい。"Are you down for pizza?" = ピザ食べたい？という使い方ができる。'},
+      {q:'"It\'s not a big deal" の意味は？',opts:["大きな取引","大したことじゃない・気にしなくていい","重要な問題","大きな決断"],ans:1,fb:'"Not a big deal" = 大したことじゃない・気にするな。"No big deal." とも言う。日常で頻出の表現。'},
+      {q:'"I\'m stuffed" を食後に言うと？',opts:["ぬいぐるみになった","荷物を詰めた","お腹いっぱい","怒っている"],ans:2,fb:'"Stuffed" = 食べ過ぎてお腹がパンパン。"I\'m full." よりも強い表現で「満腹すぎる」状態。'},
+      {q:'"Hang out" の意味は？',opts:["干す・ぶら下げる","友達とつるむ・一緒に過ごす","外に出る","待つ"],ans:1,fb:'"Hang out" = 友達とカジュアルに一緒に過ごす。"Let\'s hang out sometime!" = 今度遊ぼう！'},
+      {q:'"Catch you later" は？',opts:["後でつかまえる","また後でね・バイバイ","ゲームの合図","助けを求める"],ans:1,fb:'"Catch you later" = "See you later." と同じ。カジュアルな別れの挨拶として日常的に使われる。'},
+    ]},
+  { name:'Vocab Vampire', emoji:'🧛', color:'#2c3e50',
+    intro:'語彙の吸血鬼が現れた！今週学んだ単語で撃退しろ！',
+    questions:[
+      {q:'"Crush it" の意味は？',opts:["壊す","最高のパフォーマンスをする","疲れた","諦める"],ans:1,fb:'"Crush it" = 素晴らしい結果を出す。"You crushed it today!" = 今日は最高だった！'},
+      {q:'"On track" はどういう意味？',opts:["線路の上に","予定通り・順調","脱線した","追跡中"],ans:1,fb:'"On track" = 予定通り・順調に進んでいる。"The project is on track." = プロジェクトは順調。'},
+      {q:'"Circle back" の意味は？',opts:["円を描く","後でまた話す・再確認する","引き返す","グルグル回る"],ans:1,fb:'"Circle back" = 後でもう一度その話題に戻る。ビジネス会議でよく使われる表現。'},
+      {q:'"To die for" を使った正しい文は？',opts:["This is dangerous to die for.","Their pizza is to die for!","I want to die for this.","Please don\'t die for it."],ans:1,fb:'"To die for" = 「死ぬほど素晴らしい」= 最高に美味しい・良い。"Their pizza is to die for!" = ピザが最高！'},
+      {q:'"Proactive" の意味は？',opts:["反応が速い","問題が起きてから対処する","先手を打って積極的に動く","プロのような"],ans:2,fb:'"Proactive" = 問題が起きる前に先手を打つ積極的な姿勢。"reactive"（受け身）の対義語。'},
+    ]},
+];
+
+// ═══════════════════════════════════════════════════
+//  STATE
+// ═══════════════════════════════════════════════════
+const STORAGE_KEY = 'engmon_v2';
+let S; // main state object
+
+function defaultState() {
+  const today = dateStr();
+  return {
+    xp:0, totalDays:0, streak:0, maxStreak:0,
+    lastStudyDate:null, weekStart:getWeekStart(),
+    weeklyDays:[false,false,false,false,false,false,false],
+    todayDone:false, bossWins:0, bossDefeated:false,
+    bossWeekIndex:0, category:'daily', learnedVocab:[]
+  };
+}
+function loadState(){
+  try{ S=JSON.parse(localStorage.getItem(STORAGE_KEY))||defaultState(); }
+  catch(e){ S=defaultState(); }
+  // If new week, reset weekly days
+  if(S.weekStart!==getWeekStart()){
+    S.weekStart=getWeekStart();
+    S.weeklyDays=[false,false,false,false,false,false,false];
+    S.bossDefeated=false;
+    S.bossWeekIndex=(S.bossWeekIndex+1)%BOSSES.length;
+  }
+  // Check if today is already done
+  S.todayDone = (S.lastStudyDate===dateStr());
+  if(!S.category) S.category='daily';
+  if(!S.learnedVocab) S.learnedVocab=[];
+}
+function saveState(){ localStorage.setItem(STORAGE_KEY,JSON.stringify(S)); }
+
+function dateStr(d){ return (d||new Date()).toISOString().slice(0,10); }
+function getWeekStart(){
+  const d=new Date(); d.setHours(0,0,0,0);
+  const day=d.getDay(); d.setDate(d.getDate()-day);
+  return dateStr(d);
+}
+function getDayOfWeek(){ return new Date().getDay(); } // 0=Sun...6=Sat
+
+// XP levels
+function getCharLevel(xp){
+  for(let i=CHAR_LEVELS.length-1;i>=0;i--) if(xp>=CHAR_LEVELS[i]) return i;
+  return 0;
+}
+
+// ═══════════════════════════════════════════════════
+//  AUDIO (Web Speech API)
+// ═══════════════════════════════════════════════════
+let synth=window.speechSynthesis;
+let voices=[];
+let currentUtterance=null;
+
+function initSpeech(){
+  if(!synth) return;
+  function load(){
+    voices=synth.getVoices();
+  }
+  load();
+  synth.onvoiceschanged=load;
+}
+
+function getBestVoice(){
+  const preferred=['Samantha','Alex','Google US English','Microsoft David','en-US'];
+  for(const p of preferred){
+    const v=voices.find(v=>v.name.includes(p)||v.lang==='en-US');
+    if(v) return v;
+  }
+  return voices.find(v=>v.lang.startsWith('en'))||null;
+}
+
+function speak(text, onEnd, rate=0.88){
+  if(!synth) return;
+  synth.cancel();
+  const u=new SpeechSynthesisUtterance(text);
+  u.lang='en-US';
+  u.rate=rate;
+  const v=getBestVoice();
+  if(v) u.voice=v;
+  if(onEnd) u.onend=onEnd;
+  currentUtterance=u;
+  synth.speak(u);
+}
+
+function stopSpeech(){
+  if(synth) synth.cancel();
+  currentUtterance=null;
+}
+
+// ═══════════════════════════════════════════════════
+//  COMPLETION SOUND (Web Audio API)
+// ═══════════════════════════════════════════════════
+function playCompletionSound(){
+  try{
+    const ac=new(window.AudioContext||window.webkitAudioContext)();
+    const now=ac.currentTime;
+    const master=ac.createGain();
+    master.gain.setValueAtTime(0.24,now);
+    master.connect(ac.destination);
+
+    // ── ① ファンファーレ アルペジオ (C E G C5 E5) ──
+    // 明るいトライアングル波で素早く上昇
+    [261.63,329.63,392.00,523.25,659.25].forEach((freq,i)=>{
+      const o=ac.createOscillator(),g=ac.createGain();
+      o.type='triangle';o.frequency.value=freq;o.connect(g);g.connect(master);
+      const t=now+i*0.11;
+      g.gain.setValueAtTime(0,t);
+      g.gain.linearRampToValueAtTime(0.4,t+0.03);
+      g.gain.exponentialRampToValueAtTime(0.001,t+0.5);
+      o.start(t);o.stop(t+0.55);
+    });
+
+    // ── ② トライアドの締め音 (C4 E4 G4 同時打ち) ──
+    [261.63,329.63,392.00].forEach(freq=>{
+      const o=ac.createOscillator(),g=ac.createGain();
+      o.type='triangle';o.frequency.value=freq;o.connect(g);g.connect(master);
+      const t=now+0.58;
+      g.gain.setValueAtTime(0,t);
+      g.gain.linearRampToValueAtTime(0.28,t+0.04);
+      g.gain.exponentialRampToValueAtTime(0.001,t+0.9);
+      o.start(t);o.stop(t+1.0);
+    });
+
+    // ── ③ 余韻コード (C3 G3 E4 C5 — Cメジャー、3秒版) ──
+    [130.81,196.00,329.63,523.25].forEach(freq=>{
+      const o=ac.createOscillator(),g=ac.createGain();
+      o.type='sine';o.frequency.value=freq;o.connect(g);g.connect(master);
+      const t=now+0.62;
+      g.gain.setValueAtTime(0,t);
+      g.gain.linearRampToValueAtTime(0.07,t+0.1);
+      g.gain.setValueAtTime(0.07,t+1.2);
+      g.gain.linearRampToValueAtTime(0,t+2.2);
+      o.start(t);o.stop(t+2.4);
+    });
+
+    // マスターフェードアウト (3秒で完全消音)
+    master.gain.setValueAtTime(0.24,now+2.2);
+    master.gain.linearRampToValueAtTime(0,now+3.0);
+    setTimeout(()=>{try{ac.close();}catch(e){}},3500);
+  }catch(e){console.log('Web Audio not supported',e);}
+}
+
+// ═══════════════════════════════════════════════════
+//  NAVIGATION
+// ═══════════════════════════════════════════════════
+function navigate(id){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(b=>{
+    b.classList.toggle('active',b.dataset.screen===id);
+  });
+  const sc=document.getElementById('screen-'+id);
+  if(sc) sc.classList.add('active');
+  stopSpeech();
+  if(id==='home') renderHome();
+  if(id==='progress') renderProgress();
+  if(id==='boss') renderBoss();
+  if(id==='vocab') renderVocabBook();
+}
+
+// ═══════════════════════════════════════════════════
+//  HOME SCREEN
+// ═══════════════════════════════════════════════════
+function getScenario(){
+  const arr=S.category==='business'?SCENARIOS_BUSINESS:SCENARIOS_DAILY;
+  return arr[S.totalDays % arr.length];
+}
+
+function setCategory(cat){
+  S.category=cat;
+  saveState();
+  document.querySelectorAll('.cat-btn').forEach(b=>b.classList.remove('active'));
+  const el=document.getElementById('cat-'+cat);
+  if(el) el.classList.add('active');
+  const sc=getScenario();
+  document.getElementById('lesson-title').textContent=sc.emoji+' '+sc.titleJa;
+  document.getElementById('lesson-sub').textContent=sc.situationJa.slice(0,30)+'...';
+  if(S.todayDone){
+    document.getElementById('lesson-meta').innerHTML='✅ <span class="done-badge">今日完了</span>';
+  } else {
+    document.getElementById('lesson-meta').textContent='⏱ 5分 • 未学習';
+  }
+}
+
+function renderHome(){
+  const xp=S.xp, level=getCharLevel(xp), ch=CHARS[level];
+  const nextXP=CHAR_LEVELS[level+1]||CHAR_LEVELS[CHAR_LEVELS.length-1]+500;
+  const curXP=CHAR_LEVELS[level];
+  const pct=Math.min(100,Math.round(((xp-curXP)/(nextXP-curXP))*100));
+
+  // Sync category buttons
+  document.querySelectorAll('.cat-btn').forEach(b=>b.classList.remove('active'));
+  const catEl=document.getElementById('cat-'+(S.category||'daily'));
+  if(catEl) catEl.classList.add('active');
+
+  document.getElementById('h-streak').textContent=S.streak;
+  document.getElementById('h-xp').textContent=S.xp;
+  document.getElementById('h-level').textContent=level+1;
+  document.getElementById('h-charname').textContent=ch.name;
+  document.getElementById('h-chartitle').textContent=ch.title;
+  document.getElementById('h-char').innerHTML=ch.svg;
+  document.getElementById('h-xp-fill').style.width=pct+'%';
+  document.getElementById('h-xp-cur').textContent=xp+' XP';
+  document.getElementById('h-xp-next').textContent=level<4?`次のレベルまで ${nextXP-xp} XP`:'最終進化達成！';
+
+  // Particles for higher levels
+  const pc=document.getElementById('h-particles');
+  pc.innerHTML='';
+  if(level>=2){
+    for(let i=0;i<6;i++){
+      const p=document.createElement('div');
+      p.className='particle';
+      p.style.cssText=`left:${10+i*15}%;top:${20+Math.random()*60}%;
+        animation-delay:${i*0.5}s;animation-duration:${2+Math.random()}s;
+        background:${level>=4?'#ffd700':level>=3?'#c39bd3':'#a8e6cf'}`;
+      pc.appendChild(p);
+    }
+  }
+
+  // Lesson card
+  const sc=getScenario();
+  document.getElementById('lesson-title').textContent=sc.emoji+' '+sc.titleJa;
+  document.getElementById('lesson-sub').textContent=sc.situationJa.slice(0,30)+'...';
+  if(S.todayDone){
+    document.getElementById('lesson-meta').innerHTML='✅ <span class="done-badge">今日完了</span>';
+    document.getElementById('lesson-card').classList.add('done-card');
+    document.getElementById('lesson-arrow').textContent='✓';
+  } else {
+    document.getElementById('lesson-meta').textContent='⏱ 5分 • 未学習';
+    document.getElementById('lesson-card').classList.remove('done-card');
+    document.getElementById('lesson-arrow').textContent='›';
+  }
+
+  // Boss card
+  const studiedDays=S.weeklyDays.filter(Boolean).length;
+  const showBoss=studiedDays>=1; // Show after at least 1 day
+  document.getElementById('boss-section-header').style.display=showBoss?'':'none';
+  document.getElementById('boss-card-wrap').style.display=showBoss?'':'none';
+  if(showBoss){
+    const boss=BOSSES[S.bossWeekIndex];
+    document.getElementById('boss-card-name').textContent=boss.emoji+' '+boss.name;
+    document.getElementById('boss-card-sub').textContent=S.bossDefeated?'✅ 今週は撃退済み！':'週間ボスに挑戦！';
+    document.getElementById('boss-card-meta').textContent=S.bossDefeated?'次週のボスをお楽しみに':`今週の学習日: ${studiedDays}/7日 (5日以上で有利！)`;
+  }
+
+  // Weekly dots
+  const dots=document.getElementById('day-dots');
+  const today=getDayOfWeek();
+  const labels=['日','月','火','水','木','金','土'];
+  dots.innerHTML=labels.map((l,i)=>`
+    <div class="day-dot ${S.weeklyDays[i]?'done':''} ${i===today?'today':''}">
+      <div>${l}</div><div>${S.weeklyDays[i]?'✓':''}</div>
+    </div>`).join('');
+  document.getElementById('week-count-label').textContent=studiedDays+'/7日';
+}
+
+// ═══════════════════════════════════════════════════
+//  LESSON ENGINE
+// ═══════════════════════════════════════════════════
+let lessonState={};
+let timerInterval=null;
+let timerSeconds=300;
+
+function goLesson(){
+  navigate('lesson');
+  startLesson();
+}
+
+function startLesson(){
+  const sc=getScenario();
+  lessonState={
+    scenario:sc, phase:0,
+    vocabIdx:0, vocabFlipped:false,
+    quizIdx:0, quizDone:false,
+    xpEarned:0, quizScore:0
+  };
+  timerSeconds=300;
+  startTimer();
+  showPhase(0);
+}
+
+function startTimer(){
+  clearInterval(timerInterval);
+  timerInterval=setInterval(()=>{
+    timerSeconds--;
+    const m=Math.floor(timerSeconds/60), s=timerSeconds%60;
+    document.getElementById('timer-text').textContent=`${m}:${s.toString().padStart(2,'0')}`;
+    const pct=(timerSeconds/300)*100;
+    document.getElementById('timer-fill').style.width=pct+'%';
+    if(timerSeconds<=0){ clearInterval(timerInterval); finishLesson(true); }
+  },1000);
+}
+
+function exitLesson(){
+  stopSpeech();
+  clearInterval(timerInterval);
+  navigate('home');
+}
+
+// Phase 0: Situation intro
+// Phase 1: Dialogue
+// Phase 2: Vocab
+// Phase 3: Quiz
+// Phase 4: Results
+
+function showPhase(n){
+  lessonState.phase=n;
+  const lc=document.getElementById('lesson-content');
+  lc.innerHTML='';
+  if(n===0) renderPhaseIntro(lc);
+  else if(n===1) renderPhaseDialogue(lc);
+  else if(n===2) renderPhaseVocab(lc);
+  else if(n===3) renderPhaseQuiz(lc);
+  else if(n===4) renderPhaseResult(lc);
+}
+
+function renderPhaseIntro(lc){
+  const sc=lessonState.scenario;
+  lc.innerHTML=`
+    <span class="phase-badge">シナリオ紹介</span>
+    <div class="situation-card slide-up">
+      <div class="situation-emoji">${sc.emoji}</div>
+      <div class="situation-title">${sc.titleJa}</div>
+      <div class="situation-desc-ja">${sc.situationJa}</div>
+      <div class="situation-desc" style="margin-top:10px;color:var(--text)">${sc.title}</div>
+      <button class="start-lesson-btn" onclick="showPhase(1)">🎧 会話を聞く →</button>
+    </div>`;
+}
+
+function renderPhaseDialogue(lc){
+  const sc=lessonState.scenario;
+  let playIdx=-1;
+  let isPlaying=false;
+
+  lc.innerHTML=`
+    <span class="phase-badge">会話を聞く</span>
+    <div class="dialogue-list" id="d-list">
+      ${sc.dialogue.map((d,i)=>`
+        <div class="d-bubble-row ${d.r?'right':''}" id="drow-${i}" onclick="speakOne(${i})">
+          <div class="d-avatar">${sc.chars[d.c].avatar}</div>
+          <div class="d-bubble" id="db-${i}">
+            <div class="d-speaker">${sc.chars[d.c].name}</div>
+            <div class="d-text">
+              <div class="d-en">${d.en}</div>
+              <div class="d-ja">${d.ja}</div>
+            </div>
+          </div>
+        </div>`).join('')}
+    </div>
+    <button class="play-all-btn" id="play-all-btn" onclick="playAll()">▶ 全部まとめて再生</button>
+    <button class="next-phase-btn" onclick="doVocab()">📖 単語を学ぶ →</button>`;
+
+  // Auto-speak first line
+  setTimeout(()=>speakLine(0),400);
+
+  window.speakOne=function(i){
+    speakLine(i);
+  };
+
+  window.speakLine=function(i){
+    document.querySelectorAll('.d-bubble').forEach(b=>b.classList.remove('speaking'));
+    const db=document.getElementById('db-'+i);
+    if(db) db.classList.add('speaking');
+    speak(sc.dialogue[i].en, ()=>{
+      setTimeout(()=>{
+        if(db) db.classList.remove('speaking');
+      },300);
+    });
+  };
+
+  window.playAll=function(){
+    const btn=document.getElementById('play-all-btn');
+    if(isPlaying){ stopSpeech(); isPlaying=false; btn.textContent='▶ 全部まとめて再生'; btn.classList.remove('playing'); return; }
+    isPlaying=true; btn.textContent='⏹ 停止'; btn.classList.add('playing');
+    let idx=0;
+    function next(){
+      if(idx>=sc.dialogue.length||!isPlaying){ isPlaying=false; btn.textContent='▶ 全部まとめて再生'; btn.classList.remove('playing'); return; }
+      speakLine(idx);
+      speak(sc.dialogue[idx].en,()=>{ idx++; setTimeout(next,600); });
+    }
+    next();
+  };
+}
+
+function doVocab(){
+  stopSpeech();
+  lessonState.xpEarned+=20; // dialogue XP
+  showPhase(2);
+}
+
+function renderPhaseVocab(lc){
+  const vocab=lessonState.scenario.vocab;
+  const idx=lessonState.vocabIdx;
+  if(idx>=vocab.length){ doQuiz(); return; }
+  const v=vocab[idx];
+
+  lc.innerHTML=`
+    <span class="phase-badge">単語 ${idx+1}/${vocab.length}</span>
+    <div class="vocab-progress">
+      ${vocab.map((_,i)=>`<div class="vocab-dot ${i<=idx?'active':''}"></div>`).join('')}
+    </div>
+    <div class="vocab-flip-card" id="vcard" onclick="flipVocab()">
+      <div class="vocab-flip-inner">
+        <div class="vocab-face vocab-front">
+          <div class="vlabel">American English</div>
+          <div class="vterm">${v.term}</div>
+          <div class="vex">"${v.ex}"</div>
+          <div style="font-size:.65rem;opacity:.6;margin-top:14px">👆 タップして意味を見る</div>
+        </div>
+        <div class="vocab-face vocab-back">
+          <div class="vlabel">意味</div>
+          <div class="vterm" style="font-size:1.05rem">${v.ja}</div>
+          <div class="vex">"${v.ex}"</div>
+          ${v.origin?`<div class="vocab-origin">
+            <span class="origin-tag">💡 語源・読み解き方</span>
+            <span class="origin-orig">元の意味 → ${v.origin.original}</span>
+            <span class="origin-why">${v.origin.why}</span>
+          </div>`:''}
+        </div>
+      </div>
+    </div>
+    <div style="display:flex;gap:10px;margin-top:4px">
+      <button onclick="speakVocab('${v.term.replace(/'/g,"\\'")}','${v.ex.replace(/'/g,"\\'")}'); return false;"
+        style="flex:1;padding:10px;background:var(--bg2);border:1px solid var(--border);
+          border-radius:10px;color:var(--accent);font-weight:700;cursor:pointer">
+        🔊 音声で聞く
+      </button>
+      <button onclick="nextVocab()"
+        style="flex:2;padding:10px;background:var(--accent);border:none;
+          border-radius:10px;color:#fff;font-weight:700;cursor:pointer">
+        ${idx<vocab.length-1?'次の単語 →':'クイズへ進む →'}
+      </button>
+    </div>`;
+
+  window.flipVocab=function(){
+    document.getElementById('vcard').classList.toggle('flipped');
+  };
+  window.speakVocab=function(term,ex){
+    speak(term+'. '+ex);
+  };
+  window.nextVocab=function(){
+    lessonState.xpEarned+=10;
+    lessonState.vocabIdx++;
+    renderPhaseVocab(lc);
+  };
+}
+
+function doQuiz(){
+  stopSpeech();
+  lessonState.xpEarned+=20;
+  showPhase(3);
+}
+
+function renderPhaseQuiz(lc){
+  const quiz=lessonState.scenario.quiz;
+  const idx=lessonState.quizIdx;
+  if(idx>=quiz.length){ finishLesson(false); return; }
+  const q=quiz[idx];
+
+  lc.innerHTML=`
+    <span class="phase-badge">クイズ ${idx+1}/${quiz.length}</span>
+    <div class="quiz-q slide-up">
+      <div class="quiz-qnum">問題 ${idx+1}</div>
+      <div class="quiz-qtext">${q.q}</div>
+      ${q.sub?`<div class="quiz-qsub">${q.sub}</div>`:''}
+    </div>
+    <div class="quiz-opts">
+      ${q.opts.map((o,i)=>`<button class="quiz-opt" id="qo${i}" onclick="answerQ(${i})">${o}</button>`).join('')}
+    </div>
+    <div class="quiz-fb" id="qfb" style="display:none">${q.fb}</div>
+    <button class="next-phase-btn" id="qnext" style="display:none" onclick="nextQ()">
+      ${idx<quiz.length-1?'次の問題 →':'結果を見る →'}
+    </button>`;
+
+  window.answerQ=function(chosen){
+    document.querySelectorAll('.quiz-opt').forEach(b=>b.disabled=true);
+    const correct=chosen===q.ans;
+    document.getElementById('qo'+chosen).classList.add(correct?'correct':'wrong');
+    if(!correct) document.getElementById('qo'+q.ans).classList.add('correct');
+    if(correct){ lessonState.xpEarned+=20; lessonState.quizScore++; }
+    const fb=document.getElementById('qfb');
+    fb.style.display='block';
+    if(!correct) fb.classList.add('wrong-fb');
+    document.getElementById('qnext').style.display='block';
+  };
+  window.nextQ=function(){
+    lessonState.quizIdx++;
+    renderPhaseQuiz(lc);
+  };
+}
+
+function finishLesson(timedOut){
+  stopSpeech(); clearInterval(timerInterval);
+  // Bonus XP
+  if(lessonState.quizScore===lessonState.scenario.quiz.length) lessonState.xpEarned+=30; // perfect
+  // Streak / study tracking
+  const today=dateStr();
+  const todayWasAlreadyDone=S.todayDone;
+  if(!todayWasAlreadyDone){
+    const dayIdx=getDayOfWeek();
+    S.weeklyDays[dayIdx]=true;
+    S.todayDone=true;
+    S.lastStudyDate=today;
+    S.totalDays++;
+    // Streak
+    const yd=new Date(); yd.setDate(yd.getDate()-1);
+    if(S.lastStudyDate===dateStr(yd)||S.streak===0){
+      S.streak++;
+    } else {
+      S.streak=1;
+    }
+    S.maxStreak=Math.max(S.maxStreak,S.streak);
+    // Streak bonus
+    lessonState.xpEarned+=50;
+  }
+  // 単語帳に学習済み単語を保存
+  const sc=lessonState.scenario;
+  sc.vocab.forEach(v=>{
+    if(!S.learnedVocab.some(x=>x.term===v.term)){
+      S.learnedVocab.push({
+        term:v.term, ja:v.ja, ex:v.ex, origin:v.origin||null,
+        category:S.category, scenarioTitle:sc.titleJa,
+        scenarioEmoji:sc.emoji, date:dateStr()
+      });
+    }
+  });
+  const oldLevel=getCharLevel(S.xp);
+  S.xp+=lessonState.xpEarned;
+  const newLevel=getCharLevel(S.xp);
+  saveState();
+  playCompletionSound();
+  showPhase(4);
+  renderPhaseResult(document.getElementById('lesson-content'),oldLevel,newLevel,todayWasAlreadyDone);
+}
+
+function renderPhaseResult(lc,oldLevel,newLevel,alreadyDone){
+  const score=lessonState.quizScore, total=lessonState.scenario.quiz.length;
+  const pct=Math.round(score/total*100);
+  const emoji=pct===100?'🏆':pct>=66?'⭐':'📚';
+  const msg=pct===100?'Perfect! 完璧です！':pct>=66?'よくできました！':'次は満点を目指そう！';
+  const leveledUp=newLevel>oldLevel;
+
+  lc.innerHTML=`
+    <div class="result-wrap slide-up">
+      <div class="result-emoji">${emoji}</div>
+      <div class="result-title">${msg}</div>
+      <div class="result-xp">+${lessonState.xpEarned} XP 獲得！</div>
+      <div class="xp-items">
+        <div class="xp-item"><span>会話リスニング</span><span class="plus">+20 XP</span></div>
+        <div class="xp-item"><span>単語学習</span><span class="plus">+${lessonState.scenario.vocab.length*10} XP</span></div>
+        <div class="xp-item"><span>クイズ正解 ${score}/${total}</span><span class="plus">+${score*20} XP</span></div>
+        ${score===total?'<div class="xp-item"><span>🏆 パーフェクトボーナス</span><span class="plus">+30 XP</span></div>':''}
+        ${!alreadyDone?'<div class="xp-item"><span>🔥 毎日ボーナス</span><span class="plus">+50 XP</span></div>':''}
+      </div>
+      <div class="level-up-banner ${leveledUp?'show':''}">
+        <h3>🎉 レベルアップ！ ${CHARS[newLevel].name} に進化！</h3>
+      </div>
+      <button class="back-home-btn" onclick="exitLesson()">🏠 ホームへ戻る</button>
+    </div>`;
+}
+
+// ═══════════════════════════════════════════════════
+//  BOSS BATTLE
+// ═══════════════════════════════════════════════════
+let bossState={};
+
+function renderBoss(){
+  const ba=document.getElementById('battle-area');
+  const studiedDays=S.weeklyDays.filter(Boolean).length;
+  const boss=BOSSES[S.bossWeekIndex];
+  const playerChar=CHARS[getCharLevel(S.xp)];
+
+  if(studiedDays===0){
+    ba.innerHTML=`<div class="no-boss-msg">
+      <div style="font-size:3rem;margin-bottom:12px">🔒</div>
+      <div style="font-weight:700;margin-bottom:8px">ボスはまだ出現していない</div>
+      <div>最初のレッスンを完了するとボスが現れる！</div>
+    </div>`;
+    return;
+  }
+
+  if(S.bossDefeated){
+    ba.innerHTML=`<div class="no-boss-msg" style="text-align:center;padding:30px">
+      <div style="font-size:4rem">🏆</div>
+      <div style="font-size:1.2rem;font-weight:900;color:var(--gold);margin:12px 0">今週のボスを撃退！</div>
+      <div style="color:var(--muted)">次の週もレッスンを続けて強くなろう！</div>
+    </div>`;
+    return;
+  }
+
+  // Bonus HP advantage based on study days
+  const bonusHits=studiedDays>=5?2:studiedDays>=3?1:0;
+  bossState={
+    boss, questions:[...boss.questions].sort(()=>Math.random()-.5).slice(0,5),
+    bossMaxHP:5, bossHP:5-bonusHits,
+    playerMaxHP:3, playerHP:3,
+    qIdx:0, done:false, bonusHits
+  };
+
+  renderBattleUI(ba);
+}
+
+function renderBattleUI(ba){
+  const bs=bossState;
+  if(bs.done){ renderBattleResult(ba); return; }
+
+  const q=bs.questions[bs.qIdx];
+  const bossHPPct=Math.max(0,(bs.bossHP/bs.bossMaxHP)*100);
+  const playerHPPct=Math.max(0,(bs.playerHP/bs.playerMaxHP)*100);
+
+  ba.innerHTML=`
+    <div class="battle-top">
+      <div class="fighter">
+        <div class="fighter-name">${bs.boss.emoji} ${bs.boss.name}</div>
+        <div class="boss-display">${bs.boss.emoji}</div>
+        <div class="hp-bar-wrap"><div class="hp-fill boss-hp" style="width:${bossHPPct}%"></div></div>
+        <div class="hp-text">HP: ${bs.bossHP} / ${bs.bossMaxHP}</div>
+      </div>
+      <div class="battle-vs">VS</div>
+      <div class="fighter">
+        <div class="fighter-name">${CHARS[getCharLevel(S.xp)].name}</div>
+        <div class="player-display">${CHARS[getCharLevel(S.xp)].emoji}</div>
+        <div class="hp-bar-wrap"><div class="hp-fill player-hp" style="width:${playerHPPct}%"></div></div>
+        <div class="hp-text">HP: ${bs.playerHP} / ${bs.playerMaxHP}</div>
+      </div>
+    </div>
+    ${bs.bonusHits>0?`<div style="text-align:center;font-size:.75rem;color:var(--gold);font-weight:700">⚡ 今週${S.weeklyDays.filter(Boolean).length}日学習！ボスに先制${bs.bonusHits}ダメージ！</div>`:''}
+    <div class="battle-log" id="battle-log">問題 ${bs.qIdx+1}/5 — 正解でボスにダメージ！</div>
+    <div class="battle-q">
+      <div class="battle-qtext">${q.q}</div>
+      <div class="battle-opts">
+        ${q.opts.map((o,i)=>`<button class="battle-opt" id="bo${i}" onclick="battleAnswer(${i})">${o}</button>`).join('')}
+      </div>
+    </div>
+    <div id="battle-next" style="display:none">
+      <button class="next-phase-btn" onclick="battleNextQ()" style="margin-top:10px">次の攻撃 →</button>
+    </div>`;
+}
+
+window.battleAnswer=function(chosen){
+  const bs=bossState;
+  if(bs.done) return;
+  const q=bs.questions[bs.qIdx];
+  const correct=chosen===q.ans;
+  document.querySelectorAll('.battle-opt').forEach(b=>b.disabled=true);
+  document.getElementById('bo'+chosen).classList.add(correct?'hit':'hurt');
+  if(!correct) document.getElementById('bo'+q.ans).classList.add('hit');
+
+  const log=document.getElementById('battle-log');
+  if(correct){
+    bs.bossHP--;
+    log.innerHTML=`<span class="hit">💥 ヒット！ ${bs.boss.name} に1ダメージ！</span>`;
+    if(bs.bossHP<=0){
+      bs.done=true;
+      log.innerHTML=`<span class="win">🏆 ${bs.boss.name} を撃退！あなたの勝ち！</span>`;
+      S.bossDefeated=true; S.bossWins++;
+      const xpBonus=200;
+      S.xp+=xpBonus; saveState();
+      setTimeout(()=>{document.getElementById('battle-next').style.display='block';},800);
+      return;
+    }
+  } else {
+    bs.playerHP--;
+    log.innerHTML=`<span class="miss">❌ ミス！ ${bs.boss.name} の反撃！</span>`;
+    if(bs.playerHP<=0){
+      bs.done=true;
+      log.innerHTML=`<span class="miss">💀 体力切れ...。もっと学習して再挑戦！</span>`;
+      setTimeout(()=>{document.getElementById('battle-next').style.display='block';},800);
+      return;
+    }
+  }
+  document.getElementById('battle-next').style.display='block';
+};
+
+window.battleNextQ=function(){
+  const bs=bossState;
+  bs.qIdx++;
+  if(bs.qIdx>=bs.questions.length) bs.done=true;
+  renderBattleUI(document.getElementById('battle-area'));
+};
+
+function renderBattleResult(ba){
+  const bs=bossState;
+  const won=bs.bossHP<=0;
+  if(won) playCompletionSound();
+  ba.innerHTML=`<div class="battle-result">
+    <div style="font-size:5rem">${won?'🏆':'💀'}</div>
+    <h2 style="color:${won?'var(--gold)':'var(--red)'}">
+      ${won?'勝利！':'敗北...'}
+    </h2>
+    <p style="color:var(--muted);margin-bottom:16px">
+      ${won?`${bs.boss.name} を撃退！ +200 XP 獲得！`:'毎日レッスンを続けてパワーアップしよう！'}
+    </p>
+    ${won?'<div class="reward">+200 XP 報酬！</div>':''}
+    <button class="back-home-btn" onclick="navigate(\'home\')" style="margin-top:20px">
+      🏠 ホームへ戻る
+    </button>
+  </div>`;
+}
+
+// ═══════════════════════════════════════════════════
+//  VOCAB BOOK
+// ═══════════════════════════════════════════════════
+let _vbFiltered=[];
+
+function renderVocabBook(){
+  const all=[...S.learnedVocab].reverse();
+  _vbFiltered=all;
+  document.getElementById('vb-total').textContent=S.learnedVocab.length;
+  const inp=document.getElementById('vb-search');
+  if(inp) inp.value='';
+  renderVocabList(all);
+}
+
+function filterVocab(q){
+  const kw=q.toLowerCase().trim();
+  _vbFiltered=kw
+    ?[...S.learnedVocab].reverse().filter(v=>
+        v.term.toLowerCase().includes(kw)||
+        v.ja.includes(kw)||
+        v.ex.toLowerCase().includes(kw))
+    :[...S.learnedVocab].reverse();
+  renderVocabList(_vbFiltered);
+}
+
+function renderVocabList(list){
+  const el=document.getElementById('vocab-book-content');
+  if(!el) return;
+  if(S.learnedVocab.length===0){
+    el.innerHTML=`<div class="vb-empty">
+      <div class="vb-ei">📚</div>
+      <div style="font-weight:700;margin-bottom:8px">まだ単語がありません</div>
+      <div style="font-size:.8rem">レッスンを完了すると<br>ここに単語が追加されます！</div>
+    </div>`;
+    return;
+  }
+  if(list.length===0){
+    el.innerHTML='<div style="text-align:center;padding:30px;color:var(--muted);font-size:.85rem">該当する単語がありません</div>';
+    return;
+  }
+  el.innerHTML=list.map((v,i)=>`
+    <div class="vocab-flip-card" id="vbc-${i}" onclick="document.getElementById('vbc-${i}').classList.toggle('flipped')" style="margin-bottom:10px">
+      <div class="vocab-flip-inner">
+        <div class="vocab-face vocab-front">
+          <span class="vb-tag ${v.category==='business'?'biz':''}">${v.scenarioEmoji} ${v.scenarioTitle}</span>
+          <span class="vb-date">${v.date||''}</span>
+          <div class="vlabel">American English</div>
+          <div class="vterm">${v.term}</div>
+          <div class="vex">"${v.ex}"</div>
+          <div style="font-size:.6rem;opacity:.5;margin-top:10px">👆 タップして意味を見る</div>
+        </div>
+        <div class="vocab-face vocab-back">
+          <span class="vb-tag ${v.category==='business'?'biz':''}">${v.category==='business'?'💼 Business':'🏡 Daily'}</span>
+          <div class="vlabel">意味</div>
+          <div class="vterm" style="font-size:1.05rem">${v.ja}</div>
+          <div class="vex">"${v.ex}"</div>
+          ${v.origin?`<div class="vocab-origin">
+            <span class="origin-tag">💡 語源・読み解き方</span>
+            <span class="origin-orig">元の意味 → ${v.origin.original}</span>
+            <span class="origin-why">${v.origin.why}</span>
+          </div>`:''}
+        </div>
+      </div>
+    </div>`).join('');
+}
+
+// ═══════════════════════════════════════════════════
+//  PROGRESS SCREEN
+// ═══════════════════════════════════════════════════
+function renderProgress(){
+  document.getElementById('p-totaldays').textContent=S.totalDays+'日';
+  document.getElementById('p-maxstreak').textContent=S.maxStreak+'日';
+  document.getElementById('p-streak').textContent=S.streak+'日';
+  document.getElementById('p-xp').textContent=S.xp+' XP';
+  document.getElementById('p-bosswins').textContent=S.bossWins+'体';
+
+  // Evo tree
+  const evoTree=document.getElementById('evo-tree');
+  const curLevel=getCharLevel(S.xp);
+  evoTree.innerHTML=CHARS.map((ch,i)=>`
+    <div class="evo-stage ${i<=curLevel?'unlocked':''} ${i===curLevel?'current':''}">
+      <span class="evo-emoji">${ch.emoji}</span>
+      <div class="evo-label">${ch.name}</div>
+      <div class="evo-label" style="color:var(--muted)">${i===0?'0':CHAR_LEVELS[i]}XP~</div>
+    </div>`).join('');
+
+  // Week dots
+  const pdots=document.getElementById('p-day-dots');
+  const labels=['日','月','火','水','木','金','土'];
+  const today=getDayOfWeek();
+  pdots.innerHTML=labels.map((l,i)=>`
+    <div class="day-dot ${S.weeklyDays[i]?'done':''} ${i===today?'today':''}">
+      <div>${l}</div><div>${S.weeklyDays[i]?'✓':''}</div>
+    </div>`).join('');
+}
+
+// ═══════════════════════════════════════════════════
+//  INIT
+// ═══════════════════════════════════════════════════
+loadState();
+initSpeech();
+renderHome();
+</script>
+</body>
+</html>
